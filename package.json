@@ -7,9 +7,10 @@
     "preview": "tsx eval/preview.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
+    "@anthropic-ai/sdk": "^0.91.0",
     "dotenv": "^16.0.0",
-    "sharp": "^0.33.0"
+    "sharp": "^0.33.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

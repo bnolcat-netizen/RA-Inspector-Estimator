@@ -47,7 +47,7 @@ Contractor uploads photos → AI analyzes and suggests findings → Contractor r
 |---|---|---|
 | Frontend + Backend | Next.js (App Router) | Single repo, API routes for backend |
 | Database + Auth + Storage | Supabase | Postgres, email/password auth, photo storage |
-| AI | Anthropic Claude API (claude-sonnet-4-20250514) | Vision, abstracted behind service module |
+| AI | Anthropic Claude API (claude-sonnet-4-6) | Vision, abstracted behind service module |
 | PDF | React-PDF (@react-pdf/renderer) | Puppeteer is explicitly ruled out - see docs/architecture.md |
 | Hosting | Vercel | Avoid Vercel-proprietary features for portability |
 

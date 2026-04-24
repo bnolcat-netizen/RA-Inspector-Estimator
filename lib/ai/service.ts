@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
+import { z } from 'zod/v4'
 
 export interface Finding {
   box: { x: number; y: number; width: number; height: number }
@@ -7,9 +9,10 @@ export interface Finding {
   description: string
   suggested_service: string
   confidence: 'low' | 'medium' | 'high'
-  quantity_estimate?: number
-  quantity_unit?: string
-  quantity_confidence?: 'low' | 'medium' | 'high'
+  quantity_estimate: number | null
+  quantity_unit: string | null
+  quantity_confidence: 'low' | 'medium' | 'high' | null
+  notes?: string
 }
 
 export interface AnalysisResult {
@@ -32,7 +35,7 @@ export interface AccountKnowledgeBase {
   service_catalog: ServiceCatalogItem[]
 }
 
-const MODEL = 'claude-sonnet-4-20250514'
+const MODEL = 'claude-sonnet-4-6'
 
 const client = new Anthropic({
   defaultHeaders: {
@@ -50,7 +53,7 @@ INSTRUCTIONS:
 - Estimate quantities where clearly visible (e.g., approximate square footage of damage, linear feet of flashing)
 - Be conservative: report only what you can clearly see; do not speculate about hidden or non-visible areas
 - If the photo is too blurry, dark, or unclear to reliably analyze, return an empty findings array
-- Return ONLY valid JSON matching the schema below — no explanation, no markdown fences, no preamble
+- Use issue_type "other" only for genuine issues that do not match any listed type; always populate notes when using "other"
 
 BOUNDING BOX FORMAT:
 - x, y: percentage coordinates of the top-left corner (0 = left/top edge, 100 = right/bottom edge)
@@ -60,24 +63,42 @@ SEVERITY GUIDE:
 - critical: Active leak, structural compromise, or immediate safety hazard — repair within days
 - high: Will cause damage soon if unaddressed; end-of-life materials — repair this season
 - medium: Maintenance needed; will worsen over time — schedule soon
-- low: Cosmetic or early-stage wear — monitor or address at next service visit
+- low: Cosmetic or early-stage wear — monitor or address at next service visit`
 
-RESPONSE SCHEMA — output exactly this structure, nothing else:
-{
-  "findings": [
-    {
-      "box": { "x": number, "y": number, "width": number, "height": number },
-      "issue_type": string,
-      "severity": "low" | "medium" | "high" | "critical",
-      "description": string,
-      "suggested_service": string,
-      "confidence": "low" | "medium" | "high",
-      "quantity_estimate": number | null,
-      "quantity_unit": string | null,
-      "quantity_confidence": "low" | "medium" | "high" | null
+function buildAnalysisSchema(kb: AccountKnowledgeBase) {
+  const issueTypeSet = new Set<string>()
+  for (const item of kb.service_catalog) {
+    for (const type of item.issue_types ?? []) {
+      issueTypeSet.add(type)
     }
-  ]
-}`
+  }
+  issueTypeSet.add('other')
+
+  const issueTypes = [...issueTypeSet] as [string, ...string[]]
+  const serviceNames = kb.service_catalog.map(item => item.name) as [string, ...string[]]
+
+  return z.object({
+    findings: z.array(
+      z.object({
+        box: z.object({
+          x: z.number(),
+          y: z.number(),
+          width: z.number(),
+          height: z.number(),
+        }),
+        issue_type: z.enum(issueTypes),
+        severity: z.enum(['low', 'medium', 'high', 'critical']),
+        description: z.string(),
+        suggested_service: z.enum(serviceNames),
+        confidence: z.enum(['low', 'medium', 'high']),
+        quantity_estimate: z.number().nullable(),
+        quantity_unit: z.string().nullable(),
+        quantity_confidence: z.enum(['low', 'medium', 'high']).nullable(),
+        notes: z.string().optional(),
+      })
+    ),
+  })
+}
 
 function formatKnowledgeBase(kb: AccountKnowledgeBase): string {
   const lines: string[] = [`CONTRACTOR: ${kb.company_name}`]
@@ -86,12 +107,12 @@ function formatKnowledgeBase(kb: AccountKnowledgeBase): string {
     lines.push(`\nROOFING MATERIALS SERVICED:\n${kb.materials.join(', ')}`)
   }
 
-  lines.push('\nSERVICE CATALOG (use exact service names in suggested_service):')
+  lines.push('\nSERVICE CATALOG AND VALID ISSUE TYPES:')
   for (const item of kb.service_catalog) {
     let line = `- ${item.name}`
     if (item.description) line += `: ${item.description}`
     if (item.unit) line += ` [unit: ${item.unit}]`
-    if (item.issue_types?.length) line += ` [addresses: ${item.issue_types.join(', ')}]`
+    if (item.issue_types?.length) line += `\n  Valid issue types: ${item.issue_types.join(', ')}`
     lines.push(line)
   }
 
@@ -107,7 +128,9 @@ export async function analyzePhoto(
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp',
   knowledgeBase: AccountKnowledgeBase
 ): Promise<AnalysisResult> {
-  const response = await client.messages.create({
+  const schema = buildAnalysisSchema(knowledgeBase)
+
+  const response = await client.messages.parse({
     model: MODEL,
     max_tokens: 2048,
     system: [
@@ -137,19 +160,16 @@ export async function analyzePhoto(
         ],
       },
     ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    output_config: { format: zodOutputFormat(schema as any) },
   })
 
-  const rawText = response.content[0].type === 'text' ? response.content[0].text : ''
-
-  let parsed: { findings: Finding[] }
-  try {
-    parsed = JSON.parse(rawText)
-  } catch {
-    throw new Error(`AI returned non-JSON response: ${rawText.slice(0, 300)}`)
+  if (!response.parsed_output) {
+    throw new Error('AI returned no structured output (possible refusal)')
   }
 
   return {
-    findings: Array.isArray(parsed.findings) ? parsed.findings : [],
+    findings: response.parsed_output.findings,
     input_tokens: response.usage.input_tokens,
     output_tokens: response.usage.output_tokens,
   }
