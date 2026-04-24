@@ -36,7 +36,7 @@ professional PDF estimate documents using AI image analysis.
 Contractor uploads photos → AI analyzes and suggests findings → Contractor reviews/edits → PDF estimate generated
 ```
 
-**Initial user:** Paul Anderson, Roof Artistry (Paul@RoofArtistry.com / 757-955-0107)
+**Initial user:** A single roofing contractor (contact details stored separately)
 **Target:** Single-contractor MVP first, then multi-tenant SaaS product for roofing industry
 
 ---
@@ -312,9 +312,13 @@ ANTHROPIC_API_KEY=
 
 ## Current Build Phase
 
-**Phase 0 complete** - AI prompt validated against real contractor photos.
+**Currently: Phase 0** - Validate AI core before writing any app code.
+- Collect 15-20 real roof photos from the contractor
+- Write standalone eval script
+- Iterate on prompt with contractor until findings are reliable
+- Gate: do not start Phase 1 until findings pass on real photos
 
-**Currently: Phase 1**
+**Phase 1 (blocked)**
 - Next.js project init with App Router
 - Supabase: run migrations, configure auth, create storage bucket `photos`
 - Deploy skeleton to Vercel with CI/CD on main branch
@@ -329,7 +333,7 @@ See `docs/mvp-scope-and-build-plan.md` for all phases and deliverables.
 
 ## PDF Template Reference
 
-Modelled on a real Roof Artistry estimate. Structure:
+Modelled on a real contractor estimate. Structure:
 1. Cover page - contractor logo, job address, date
 2. Introduction - narrative describing findings and options
 3. Inspection section - annotated photos with numbered findings

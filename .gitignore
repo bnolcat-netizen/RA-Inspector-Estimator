@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+
+# Eval results are stored locally; add specific result files to git if you want to track them
+eval/results/*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.suo
+.idea/
+.vscode/
