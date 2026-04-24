@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "eval": "tsx eval/run.ts"
+    "eval": "tsx eval/run.ts",
+    "preview": "tsx eval/preview.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
