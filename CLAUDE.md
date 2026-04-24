@@ -312,13 +312,12 @@ ANTHROPIC_API_KEY=
 
 ## Current Build Phase
 
-**Currently: Phase 0** - Validate AI core before writing any app code.
-- Collect 15-20 real roof photos from the contractor
-- Write standalone eval script
-- Iterate on prompt with contractor until findings are reliable
-- Gate: do not start Phase 1 until findings pass on real photos
+**Phase 0 (in progress — running in parallel with Phase 1)**
+- 25 photos collected, eval harness and preview script built and working
+- Structured outputs wired up (Zod schema, `client.messages.parse`)
+- Remaining: label `eval/expected.json`, run eval, tune with contractor until thresholds pass
 
-**Phase 1 (blocked)**
+**Currently: Phase 1**
 - Next.js project init with App Router
 - Supabase: run migrations, configure auth, create storage bucket `photos`
 - Deploy skeleton to Vercel with CI/CD on main branch
