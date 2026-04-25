@@ -259,7 +259,7 @@ export default function ReviewPage() {
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             aria-hidden="true"
-            style={{ cursor: drawMode ? 'crosshair' : 'default' }}
+            style={{ cursor: drawMode ? 'crosshair' : 'default', touchAction: drawMode ? 'none' : 'auto' }}
             onPointerDown={handleSvgPointerDown}
             onPointerMove={handleSvgPointerMove}
             onPointerUp={handleSvgPointerUp}
