@@ -1,6 +1,6 @@
 # RoofEstimate AI -- Progress Tracker
 
-*Updated: 2026-04-25 (Phase 6 in progress — mobile UX, annotation draw mode, PDF polish done). Used to orient Claude Code at session start.*
+*Updated: 2026-04-25 (Phase 6 in progress — multi-upload bugs fixed). Used to orient Claude Code at session start.*
 
 > **Spec:** See `docs/mvp-scope-and-build-plan.md` for full build plan.
 
@@ -106,6 +106,8 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - **README**: full usage and self-hosting documentation added (`README.md`)
 - **Bug fix — AI knowledge base**: `/api/ai/analyze` was always using `DEFAULT_KNOWLEDGE_BASE` regardless of account catalog. Now loads account name + active service catalog from DB; falls back to default only if catalog is not yet seeded.
 - **Bug fix — photo status badges**: job detail page was hardcoding `analysis_status: 'complete'` for all existing photos on load. `/api/jobs/[id]` now returns `analysis_status` per photo; page uses the real value (falls back to `'pending'` for any null rows).
+- **Bug fix — multi-upload order**: `PhotoUploader` was interleaving upload+analyze per file, so a page refresh mid-analysis lost all un-uploaded files. Now uploads all files first, then analyzes in sequence.
+- **Bug fix — stuck processing status**: photos stuck in "Analyzing…" after a page refresh now self-recover via a 3-second polling effect on the job detail page. Uses a lightweight `?status_only=true` API path that skips signed URL regeneration.
 - Remaining: onboard contractor, gather feedback
 
 ---
