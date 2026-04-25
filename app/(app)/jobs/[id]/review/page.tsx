@@ -32,6 +32,12 @@ const SEVERITY_BADGE: Record<Finding['severity'], string> = {
   critical: 'bg-red-100 text-red-700',
 }
 
+const CONFIDENCE_BADGE: Record<'low' | 'medium' | 'high', { classes: string; label: string }> = {
+  low:    { classes: 'bg-gray-100 text-gray-400',    label: '? low confidence' },
+  medium: { classes: 'bg-amber-100 text-amber-700',  label: '~ medium confidence' },
+  high:   { classes: 'bg-green-100 text-green-700',  label: '✓ high confidence' },
+}
+
 const SEVERITY_COLOR: Record<Finding['severity'], string> = {
   low: '#6b7280',
   medium: '#d97706',
@@ -524,9 +530,9 @@ export default function ReviewPage() {
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_BADGE[finding.severity]}`}>
                             {finding.severity}
                           </span>
-                          {finding.confidence === 'low' && (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
-                              ? low confidence
+                          {finding.confidence && CONFIDENCE_BADGE[finding.confidence] && (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CONFIDENCE_BADGE[finding.confidence].classes}`}>
+                              {CONFIDENCE_BADGE[finding.confidence].label}
                             </span>
                           )}
                           <span className="text-sm font-semibold text-gray-800">
