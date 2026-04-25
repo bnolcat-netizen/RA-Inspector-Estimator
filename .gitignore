@@ -8,6 +8,9 @@ dist/
 eval/photos/
 eval/results/*.json
 
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
 # OS / editor
 .DS_Store
 Thumbs.db

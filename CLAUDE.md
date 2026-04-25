@@ -82,9 +82,7 @@ Contractor uploads photos → AI analyzes and suggests findings → Contractor r
 │   └── utils/
 │       └── image.ts            # Compression, resize, blur detection
 ├── components/
-│   ├── annotation/             # Konva.js bounding box UI
-│   ├── estimate/               # Line item assembly UI
-│   └── ui/                     # Shared UI components
+│   └── photos/                 # PhotoUploader.tsx (annotation draw mode is inline in review page)
 ├── eval/                       # Phase 0 + ongoing AI eval harness
 │   ├── photos/                 # Raw unannotated test photos
 │   ├── expected.json           # Ground truth findings per photo
