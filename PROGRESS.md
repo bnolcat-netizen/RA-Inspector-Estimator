@@ -29,6 +29,15 @@
 - Deployed to Vercel with CI/CD on main branch
 - Phase 1 gate passed: contractor can log in on phone browser
 
+### Phase 3 — AI Analysis Pipeline (complete)
+- `lib/ai/knowledge-base.ts`: shared knowledge base module (eval scripts updated to import from it)
+- `/api/ai/analyze`: fetches photo from Supabase storage, calls `analyzePhoto()`, stores findings with `ai_raw`, logs to `ai_usage_log`, updates `analysis_status`
+- `/api/findings`: GET findings by photo (account-scoped), PATCH to confirm/edit/reject
+- `PhotoUploader`: triggers analysis after upload, shows Uploading → Analyzing → idle states
+- Job detail page: per-photo status badges (Pending/Analyzing/Ready/Failed), "Review Findings" button appears when photos are ready
+- `/jobs/[id]/review`: photo strip, full-size photo view, findings list with confirm/edit/reject and inline edit form
+- Migration `002_findings_notes.sql`: added `notes` column to findings (was missing from initial schema)
+
 ### Phase 2 — Job + Photo Management (complete)
 - Jobs list page: real DB query, status badges, empty state
 - New job form (`/jobs/new`): client name, address, city/state/zip, notes — Server Action inserts to DB
@@ -59,13 +68,11 @@
 Run eval: `npm run eval`
 Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 
-### Phase 3 — AI Analysis Pipeline
-- Trigger AI analysis per photo after upload (call `lib/ai/service.ts`)
-- Store findings in DB (`findings` table) with `ai_raw` preserved
-- Review UI: photo with AI findings overlaid, contractor confirms/edits/adds
-- Log every AI call to `ai_usage_log`
-
-Gate: do not start Phase 3 until Phase 0 eval thresholds pass.
+### Phase 4 — Estimate + PDF Generation
+- Map confirmed findings to service catalog line items
+- Estimate review screen: line items, quantities, notes
+- PDF generation: annotated photos + line items + contractor branding
+- Download and share PDF
 
 ---
 
