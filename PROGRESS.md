@@ -102,6 +102,7 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - **PDF visual polish**: full-bleed branded cover header; consistent interior page headers with accent bar; per-severity color badges on findings; estimate table with primary-color header row and alternating row shading; authorization page with option checkboxes and client info block
 - **Feedback analytics page**: in-app page aggregating confirmed/edited/rejected rates by `issue_type` — data-driven prompt tuning signal
 - **Middleware deprecation**: renamed to `proxy.ts` per Next.js 16 convention
+- **Confidence filtering**: `confidence` column added to `findings`; low-confidence AI suggestions hidden by default in review UI with a "N hidden" toggle to reveal
 - Remaining: onboard contractor, gather feedback
 
 ---

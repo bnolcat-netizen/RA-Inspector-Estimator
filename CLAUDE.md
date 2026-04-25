@@ -163,6 +163,7 @@ create table findings (
   description     text,
   suggested_service text,
   status          text default 'ai_suggested', -- ai_suggested | confirmed | rejected | edited
+  confidence      text,    -- low | medium | high | null (null = contractor-added)
   ai_raw          jsonb,   -- original AI output, never modified
   edited_at       timestamp,
   confirmed_at    timestamp,
