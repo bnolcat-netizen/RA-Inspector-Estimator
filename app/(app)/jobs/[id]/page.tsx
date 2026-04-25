@@ -71,6 +71,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<Job | null>(null)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasUnreviewed, setHasUnreviewed] = useState(false)
 
   useEffect(() => {
     fetch(`/api/jobs/${id}`)
@@ -87,6 +88,16 @@ export default function JobDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  const [findingsTick, setFindingsTick] = useState(0)
+
+  useEffect(() => {
+    fetch(`/api/findings?job_id=${id}`)
+      .then((r) => r.json())
+      .then(({ findings }) => {
+        setHasUnreviewed((findings ?? []).some((f: { status: string }) => f.status === 'ai_suggested'))
+      })
+  }, [id, findingsTick])
+
   function handleUploaded(photo: UploadedPhoto) {
     setPhotos((prev) => [...prev, photo])
   }
@@ -95,6 +106,7 @@ export default function JobDetailPage() {
     setPhotos((prev) =>
       prev.map((p) => (p.id === photoId ? { ...p, analysis_status: status } : p))
     )
+    if (status === 'complete') setFindingsTick((t) => t + 1)
   }
 
   if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
@@ -144,7 +156,13 @@ export default function JobDetailPage() {
               >
                 Review Findings ({readyPhotos} photo{readyPhotos !== 1 ? 's' : ''} ready)
               </Link>
-              <BuildEstimateButton jobId={id} />
+              {hasUnreviewed ? (
+                <p className="text-center text-xs text-gray-400 pt-1">
+                  Confirm findings above before building your estimate.
+                </p>
+              ) : (
+                <BuildEstimateButton jobId={id} />
+              )}
             </div>
           )}
         </>
