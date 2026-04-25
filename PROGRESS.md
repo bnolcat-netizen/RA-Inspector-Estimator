@@ -70,7 +70,7 @@ Real quality signal is already flowing into the DB:
 
 **Remaining:**
 1. Get the contractor's actual service catalog and pricing to replace the draft knowledge base
-2. Build a feedback report — a script or internal page that aggregates edits/rejections by `issue_type` so prompt tuning is data-driven rather than intuition-driven
+2. ~~Build a feedback report~~ — done (in-app feedback analytics page)
 3. After a few jobs accumulate, export a selection of confirmed findings into `eval/expected.json` as a stable regression benchmark reflecting his real standards
 4. Use patterns surfaced in (2) to iterate on the prompt and knowledge base
 
@@ -100,15 +100,15 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - **Mobile UX**: all form inputs upgraded to `text-base` (16px) to prevent iOS auto-zoom; Edit/Remove line item buttons replaced with tappable pill buttons; Save/Cancel/Add buttons increased to py-3; settings Active/Off/Edit card buttons enlarged; `confirm()` delete dialog replaced with inline Confirm/No buttons
 - **Error handling**: load error + Retry on estimate page; `.catch()` on job detail fetch
 - **PDF visual polish**: full-bleed branded cover header; consistent interior page headers with accent bar; per-severity color badges on findings; estimate table with primary-color header row and alternating row shading; authorization page with option checkboxes and client info block
+- **Feedback analytics page**: in-app page aggregating confirmed/edited/rejected rates by `issue_type` — data-driven prompt tuning signal
+- **Middleware deprecation**: renamed to `proxy.ts` per Next.js 16 convention
 - Remaining: onboard contractor, gather feedback
 
 ---
 
 ## Known Issues / Deferred Items
-- `middleware.ts` deprecation warning in Next.js 16 — needs rename to `proxy.ts` (non-breaking)
 - Client-side blur detection (`lib/utils/image.ts`) — deferred post-handoff
 - Box repositioning in edit mode (drag corners to resize/move) — deferred post-handoff
-- Feedback analytics — script/page aggregating edit/rejection rates by `issue_type` to make prompt tuning data-driven
 - Image resize decision: client-side Canvas API used for upload; `sharp` used server-side for PDF annotation
 
 ---
