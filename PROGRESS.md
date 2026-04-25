@@ -84,6 +84,7 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - Lazy-seeds from DEFAULT_KNOWLEDGE_BASE on first visit to /settings or first estimate creation
 - Contractor can now self-serve without developer involvement
 - Also fixed: "Build Estimate" button now hidden until all findings are confirmed/rejected
+- Manually tested: seed on first visit, add, edit, issue type normalization, toggle active, delete, end-to-end catalog → estimate mapping
 
 ### Phase 6 — Polish + Handoff (next)
 - PDF template visual polish (fonts, spacing, layout)
