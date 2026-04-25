@@ -312,20 +312,23 @@ ANTHROPIC_API_KEY=
 
 ## Current Build Phase
 
-**Phase 0 (in progress — running in parallel with Phase 1)**
-- 25 photos collected, eval harness and preview script built and working
-- Structured outputs wired up (Zod schema, `client.messages.parse`)
-- Remaining: label `eval/expected.json`, run eval, tune with contractor until thresholds pass
+**Phases 1–4 complete.** End-to-end flow working: photo upload → AI analysis → findings review (with bounding box annotations) → estimate assembly → PDF download.
 
-**Currently: Phase 1**
-- Next.js project init with App Router
-- Supabase: run migrations, configure auth, create storage bucket `photos`
-- Deploy skeleton to Vercel with CI/CD on main branch
-- Basic email/password auth via Supabase Auth
-- Mobile-responsive shell layout
+**Phase 0 (parallel track — still open)**
+- Eval harness and preview script working; 25 photos collected
+- Remaining: label `eval/expected.json`, run eval, iterate until thresholds pass
+- Run eval: `npm run eval` (Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%)
 
-Gate: do not start Phase 2 until contractor can log in on a phone browser.
+**Currently: Phase 5 — Knowledge Base UI**
+- Admin screen for contractor to manage service catalog
+- Unblocks contractor from needing a developer to update services/pricing
 
+**Phase 6 — Polish + Handoff**
+- PDF template visual polish (fonts, spacing, layout)
+- Mobile UX cleanup
+- Error handling and loading states
+
+See `PROGRESS.md` for full detail on completed work and known issues.
 See `docs/mvp-scope-and-build-plan.md` for all phases and deliverables.
 
 ---
