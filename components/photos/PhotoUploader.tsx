@@ -68,7 +68,6 @@ export default function PhotoUploader({ jobId, onUploaded, onAnalysisComplete }:
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
