@@ -1,6 +1,6 @@
 # RoofEstimate AI -- Progress Tracker
 
-*Updated: 2026-04-24 (Phase 4 complete, end-to-end flow working). Used to orient Claude Code at session start.*
+*Updated: 2026-04-24 (Phase 5 complete, service catalog editor live). Used to orient Claude Code at session start.*
 
 > **Spec:** See `docs/mvp-scope-and-build-plan.md` for full build plan.
 
@@ -79,12 +79,13 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - `serverExternalPackages` added to next.config.ts for @react-pdf/renderer and sharp
 - PDF layout works end-to-end; visual polish deferred to Phase 6
 
-### Phase 5 — Knowledge Base UI (next)
-- Admin screen for contractor to manage service catalog (add/edit/remove services, pricing)
-- Replaces hardcoded DEFAULT_KNOWLEDGE_BASE with contractor's actual catalog
-- Required before contractor can self-serve without developer involvement
+### Phase 5 — Knowledge Base UI (complete)
+- Service catalog editor at /settings: add, edit, toggle active/inactive, delete
+- Lazy-seeds from DEFAULT_KNOWLEDGE_BASE on first visit to /settings or first estimate creation
+- Contractor can now self-serve without developer involvement
+- Also fixed: "Build Estimate" button now hidden until all findings are confirmed/rejected
 
-### Phase 6 — Polish + Handoff
+### Phase 6 — Polish + Handoff (next)
 - PDF template visual polish (fonts, spacing, layout)
 - Mobile UX cleanup (used on a roof — fast and simple)
 - Error handling and loading states

@@ -319,11 +319,7 @@ ANTHROPIC_API_KEY=
 - Remaining: label `eval/expected.json`, run eval, iterate until thresholds pass
 - Run eval: `npm run eval` (Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%)
 
-**Currently: Phase 5 — Knowledge Base UI**
-- Admin screen for contractor to manage service catalog
-- Unblocks contractor from needing a developer to update services/pricing
-
-**Phase 6 — Polish + Handoff**
+**Currently: Phase 6 — Polish + Handoff**
 - PDF template visual polish (fonts, spacing, layout)
 - Mobile UX cleanup
 - Error handling and loading states
