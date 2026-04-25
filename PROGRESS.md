@@ -1,6 +1,6 @@
 # RoofEstimate AI -- Progress Tracker
 
-*Updated: 2026-04-24. Used to orient Claude Code at session start.*
+*Updated: 2026-04-24 (Phase 1 code complete). Used to orient Claude Code at session start.*
 
 > **Spec:** See `docs/mvp-scope-and-build-plan.md` for full build plan.
 
@@ -39,12 +39,21 @@
 Run eval: `npm run eval`
 Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 
-### Phase 1 — Foundation (starting now)
-- Next.js project init with App Router
-- Supabase: run migrations, configure auth, create storage bucket `photos`
-- Deploy skeleton to Vercel with CI/CD on main branch
-- Basic email/password auth via Supabase Auth
-- Mobile-responsive shell layout
+### Phase 1 — Foundation (code complete; awaiting manual steps)
+
+**Code done (builds cleanly):**
+- Next.js App Router skeleton with all routes
+- Supabase clients: browser, server (SSR), service role
+- Email/password auth: login page, signup page, middleware session guard
+- Mobile-responsive shell layout: sticky header, bottom tab bar (mobile), sidebar (desktop)
+- Migration SQL: `supabase/migrations/001_initial_schema.sql` (all tables + RLS)
+
+**Manual steps remaining before gate:**
+1. Run migration in Supabase dashboard → SQL Editor → paste `001_initial_schema.sql`
+2. Supabase → Auth → Settings → disable "Confirm email" (for dev)
+3. Supabase → Storage → create bucket named `photos` (private)
+4. Push to GitHub, connect repo to Vercel, add env vars in Vercel dashboard
+5. Verify contractor can log in on phone browser
 
 Gate: do not start Phase 2 until contractor can log in on a phone browser.
 
