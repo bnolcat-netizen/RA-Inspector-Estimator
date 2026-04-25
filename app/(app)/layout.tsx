@@ -39,6 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <nav className="hidden md:flex flex-col w-48 border-r border-gray-200 bg-white pt-6 shrink-0">
           <NavLink href="/jobs">Jobs</NavLink>
           <NavLink href="/settings">Settings</NavLink>
+          <NavLink href="/feedback">Feedback</NavLink>
         </nav>
 
         <main className="flex-1 px-4 py-6 pb-24 md:pb-6">
@@ -50,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 flex">
         <MobileNavLink href="/jobs" label="Jobs" />
         <MobileNavLink href="/settings" label="Settings" />
+        <MobileNavLink href="/feedback" label="Feedback" />
       </nav>
     </div>
   )
