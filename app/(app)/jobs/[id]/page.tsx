@@ -1,10 +1,39 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import PhotoUploader, { type UploadedPhoto } from '@/components/photos/PhotoUploader'
+
+function BuildEstimateButton({ jobId }: { jobId: string }) {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+
+  async function handleClick() {
+    setLoading(true)
+    const res = await fetch('/api/estimates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }),
+    })
+    if (res.ok) {
+      router.push(`/jobs/${jobId}/estimate`)
+    } else {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 active:bg-violet-200 disabled:opacity-50"
+    >
+      {loading ? 'Building estimate…' : 'Build Estimate'}
+    </button>
+  )
+}
 
 interface Job {
   id: string
@@ -108,12 +137,15 @@ export default function JobDetailPage() {
           </div>
 
           {readyPhotos > 0 && (
-            <Link
-              href={`/jobs/${id}/review`}
-              className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 active:bg-violet-800"
-            >
-              Review Findings ({readyPhotos} photo{readyPhotos !== 1 ? 's' : ''} ready)
-            </Link>
+            <div className="mt-4 space-y-2">
+              <Link
+                href={`/jobs/${id}/review`}
+                className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 active:bg-violet-800"
+              >
+                Review Findings ({readyPhotos} photo{readyPhotos !== 1 ? 's' : ''} ready)
+              </Link>
+              <BuildEstimateButton jobId={id} />
+            </div>
           )}
         </>
       )}
