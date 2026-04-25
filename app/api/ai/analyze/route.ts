@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
         suggested_service: f.suggested_service,
         status: 'ai_suggested',
         ai_raw: f,
+        notes: f.notes ?? null,
       }))
 
       await service.from('findings').insert(rows)
