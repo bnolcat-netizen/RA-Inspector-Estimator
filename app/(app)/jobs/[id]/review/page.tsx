@@ -279,9 +279,8 @@ export default function ReviewPage() {
             onPointerUp={handleSvgPointerUp}
           >
             {visibleBoxFindings.map((finding) => {
-              if (!hasBox(finding)) return null
+              if (!hasBox(finding) || finding.id !== selectedFindingId) return null
               const color = SEVERITY_COLOR[finding.severity]
-              const isSelected = finding.id === selectedFindingId
               return (
                 <rect
                   key={finding.id}
@@ -290,9 +289,9 @@ export default function ReviewPage() {
                   width={finding.box_width}
                   height={finding.box_height}
                   fill={color}
-                  fillOpacity={isSelected ? 0.25 : 0.1}
+                  fillOpacity={0.25}
                   stroke={color}
-                  strokeWidth={isSelected ? 0.8 : 0.5}
+                  strokeWidth={0.8}
                   style={{ cursor: drawMode ? 'crosshair' : 'pointer' }}
                   onClick={() => !drawMode && selectFinding(finding.id)}
                 />

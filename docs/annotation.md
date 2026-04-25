@@ -152,7 +152,7 @@ Example layout per photo:
 - **AI bounding box is off** - contractor can reposition in edit mode
 - **Issue not in service catalog** - contractor can type a custom description, flag for catalog addition
 - **Low quality photo** - detect blur client-side using Laplacian variance on a canvas element before upload. Draw the image to a grayscale canvas, apply a Laplacian kernel, compute pixel variance. Variance below a defined threshold (calibrate during Phase 0 with contractor photos) triggers a warning. This runs entirely in the browser with no extra dependency. Warn the contractor but do not block upload - they may intentionally upload a wide-angle context shot.
-- **Multiple findings overlapping** - stack labels, allow tap to cycle through overlapping boxes
+- **Multiple findings overlapping** - review UI shows the bounding box only for the active/selected finding; all other findings show their numbered badge only. PDF uses a greedy badge placement algorithm (8 candidate offsets, first non-colliding slot wins) so badges never stack on top of each other in customer-facing output.
 
 ---
 

@@ -18,6 +18,47 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
+type BadgePos = { cx: number; cy: number }
+
+function placeBadge(
+  rawCx: number,
+  rawCy: number,
+  placed: BadgePos[],
+  imageW: number,
+  imageH: number
+): BadgePos {
+  const BADGE_R = 11
+  const MIN_DIST = 24 // 22px diameter + 2px gap
+
+  const candidates: BadgePos[] = [
+    { cx: rawCx, cy: rawCy },
+    { cx: rawCx + MIN_DIST, cy: rawCy },
+    { cx: rawCx, cy: rawCy + MIN_DIST },
+    { cx: rawCx + MIN_DIST, cy: rawCy + MIN_DIST },
+    { cx: rawCx - MIN_DIST, cy: rawCy },
+    { cx: rawCx, cy: rawCy - MIN_DIST },
+    { cx: rawCx + MIN_DIST * 2, cy: rawCy },
+    { cx: rawCx - MIN_DIST, cy: rawCy + MIN_DIST },
+  ]
+
+  for (const c of candidates) {
+    const cx = Math.max(BADGE_R, Math.min(imageW - BADGE_R, c.cx))
+    const cy = Math.max(BADGE_R, Math.min(imageH - BADGE_R, c.cy))
+    const overlaps = placed.some((p) => {
+      const dx = p.cx - cx
+      const dy = p.cy - cy
+      return Math.sqrt(dx * dx + dy * dy) < MIN_DIST
+    })
+    if (!overlaps) return { cx, cy }
+  }
+
+  // All candidates collide — fall back to raw position clamped to bounds
+  return {
+    cx: Math.max(BADGE_R, Math.min(imageW - BADGE_R, rawCx)),
+    cy: Math.max(BADGE_R, Math.min(imageH - BADGE_R, rawCy)),
+  }
+}
+
 async function compositeAnnotations(
   imageBuffer: Buffer,
   findings: Array<{ box_x: number; box_y: number; box_width: number; box_height: number; severity: string }>
@@ -26,9 +67,22 @@ async function compositeAnnotations(
   const w = meta.width ?? 800
   const h = meta.height ?? 600
 
-  // Build SVG overlay with bounding boxes
-  const rects = findings
-    .filter((f) => f.box_x != null && f.box_y != null && f.box_width != null && f.box_height != null)
+  const BADGE_R = 11
+  const filtered = findings.filter(
+    (f) => f.box_x != null && f.box_y != null && f.box_width != null && f.box_height != null
+  )
+
+  // Greedily place badges, offsetting each one until it doesn't collide with prior badges
+  const placed: BadgePos[] = []
+  const badgePositions = filtered.map((f) => {
+    const x = Math.round((f.box_x / 100) * w)
+    const y = Math.round((f.box_y / 100) * h)
+    const pos = placeBadge(x + BADGE_R, Math.max(BADGE_R, y - BADGE_R), placed, w, h)
+    placed.push(pos)
+    return pos
+  })
+
+  const rects = filtered
     .map((f, i) => {
       const x = Math.round((f.box_x / 100) * w)
       const y = Math.round((f.box_y / 100) * h)
@@ -36,11 +90,12 @@ async function compositeAnnotations(
       const bh = Math.round((f.box_height / 100) * h)
       const color = SEVERITY_COLOR[f.severity] ?? '#6b7280'
       const [r, g, b] = hexToRgb(color)
+      const { cx, cy } = badgePositions[i]
       return `
         <rect x="${x}" y="${y}" width="${bw}" height="${bh}"
           fill="rgba(${r},${g},${b},0.15)" stroke="${color}" stroke-width="3" rx="2"/>
-        <rect x="${x}" y="${Math.max(0, y - 22)}" width="22" height="22" fill="${color}" rx="11"/>
-        <text x="${x + 11}" y="${Math.max(0, y - 6)}"
+        <rect x="${cx - BADGE_R}" y="${cy - BADGE_R}" width="22" height="22" fill="${color}" rx="${BADGE_R}"/>
+        <text x="${cx}" y="${cy + 5}"
           text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="white">${i + 1}</text>
       `
     })

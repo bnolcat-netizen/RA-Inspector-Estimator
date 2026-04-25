@@ -108,6 +108,7 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - **Bug fix — photo status badges**: job detail page was hardcoding `analysis_status: 'complete'` for all existing photos on load. `/api/jobs/[id]` now returns `analysis_status` per photo; page uses the real value (falls back to `'pending'` for any null rows).
 - **Bug fix — multi-upload order**: `PhotoUploader` was interleaving upload+analyze per file, so a page refresh mid-analysis lost all un-uploaded files. Now uploads all files first, then analyzes in sequence.
 - **Bug fix — stuck processing status**: photos stuck in "Analyzing…" after a page refresh now self-recover via a 3-second polling effect on the job detail page. Uses a lightweight `?status_only=true` API path that skips signed URL regeneration.
+- **Annotation overlap fix**: review UI now shows bounding box only for the selected finding (other findings show badge only); PDF uses greedy badge placement to prevent number badge collisions on dense photos
 - Remaining: onboard contractor, gather feedback
 
 ---
