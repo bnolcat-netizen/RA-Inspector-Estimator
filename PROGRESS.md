@@ -1,6 +1,6 @@
 # RoofEstimate AI -- Progress Tracker
 
-*Updated: 2026-04-24 (Phase 1 code complete). Used to orient Claude Code at session start.*
+*Updated: 2026-04-24 (Phase 2 code complete). Used to orient Claude Code at session start.*
 
 > **Spec:** See `docs/mvp-scope-and-build-plan.md` for full build plan.
 
@@ -8,7 +8,7 @@
 
 ## Completed
 
-### Phase 0 scaffolding (in progress — running in parallel with Phase 1)
+### Phase 0 scaffolding (in progress — running in parallel)
 - 25 real roof photos collected in `eval/photos/`
 - Eval harness (`eval/run.ts`) — scores recall, precision, hallucination rate against labeled ground truth
 - Preview script (`eval/preview.ts`) — runs photos through Claude without labels; useful for prompt iteration
@@ -18,12 +18,32 @@
   - `'other'` escape hatch with required `notes` field for genuinely novel issue types
   - Prompt caching on system prompt
 - Draft knowledge base for the contractor (inline in `eval/run.ts` and `eval/preview.ts`) — covers common slate and asphalt issue types, 12 service catalog entries
-- `package.json`, `tsconfig.json`, `.env.example`, `.gitignore` in place
 - `npm run preview` confirmed working end-to-end on 25 photos
+
+### Phase 1 — Foundation (complete)
+- Next.js App Router skeleton with all routes
+- Supabase clients: browser, server (SSR), service role
+- Email/password auth: login page, signup page, middleware session guard
+- Mobile-responsive shell layout: sticky header, bottom tab bar (mobile), sidebar (desktop)
+- Migration SQL applied: `supabase/migrations/001_initial_schema.sql` (all tables + RLS)
+- Deployed to Vercel with CI/CD on main branch
+- Phase 1 gate passed: contractor can log in on phone browser
+
+### Phase 2 — Job + Photo Management (complete)
+- Jobs list page: real DB query, status badges, empty state
+- New job form (`/jobs/new`): client name, address, city/state/zip, notes — Server Action inserts to DB
+- Job detail page (`/jobs/[id]`): photo grid, signed URLs, fetched via `/api/jobs/[id]`
+- Photo upload flow:
+  - Client-side resize to max 1200px using Canvas API (`lib/utils/image.ts`)
+  - POST to `/api/photos/upload` — uploads to Supabase Storage, writes `photos` record, returns signed URL
+  - `PhotoUploader` client component handles file selection, camera capture, and optimistic UI
+- `getCurrentUser()` helper added to `lib/supabase/server.ts` — looks up `account_id` from `users` table
 
 ### Project infrastructure
 - All design docs written (`docs/`)
 - `CLAUDE.md` fully populated with stack, schema, rules, and phase status
+- GitHub repo: `github.com/bnolcat-netizen/RA-Inspector-Estimator`
+- Vercel project: `ra-inspector-estimator.vercel.app`
 
 ---
 
@@ -39,23 +59,20 @@
 Run eval: `npm run eval`
 Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 
-### Phase 1 — Foundation (code complete; awaiting manual steps)
+### Phase 3 — AI Analysis Pipeline
+- Trigger AI analysis per photo after upload (call `lib/ai/service.ts`)
+- Store findings in DB (`findings` table) with `ai_raw` preserved
+- Review UI: photo with AI findings overlaid, contractor confirms/edits/adds
+- Log every AI call to `ai_usage_log`
 
-**Code done (builds cleanly):**
-- Next.js App Router skeleton with all routes
-- Supabase clients: browser, server (SSR), service role
-- Email/password auth: login page, signup page, middleware session guard
-- Mobile-responsive shell layout: sticky header, bottom tab bar (mobile), sidebar (desktop)
-- Migration SQL: `supabase/migrations/001_initial_schema.sql` (all tables + RLS)
+Gate: do not start Phase 3 until Phase 0 eval thresholds pass.
 
-**Manual steps remaining before gate:**
-1. Run migration in Supabase dashboard → SQL Editor → paste `001_initial_schema.sql`
-2. Supabase → Auth → Settings → disable "Confirm email" (for dev)
-3. Supabase → Storage → create bucket named `photos` (private)
-4. Push to GitHub, connect repo to Vercel, add env vars in Vercel dashboard
-5. Verify contractor can log in on phone browser
+---
 
-Gate: do not start Phase 2 until contractor can log in on a phone browser.
+## Known Issues / Deferred Items
+- `middleware.ts` deprecation warning in Next.js 16 — needs rename to `proxy.ts` (non-breaking, fix in polish phase)
+- Client-side blur detection (`lib/utils/image.ts`) — deferred to Phase 6 polish
+- Image resize decision: client-side Canvas API used for upload; `sharp` used server-side for PDF annotation
 
 ---
 
@@ -63,14 +80,17 @@ Gate: do not start Phase 2 until contractor can log in on a phone browser.
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| AI model | `claude-sonnet-4-6` | Current Sonnet; prior model deprecated June 2026 and lacked structured output support |
+| AI model | `claude-sonnet-4-6` | Current Sonnet; structured output support |
 | Structured output | `client.messages.parse` + Zod v4 schema | Grammar-enforced at decode time; enums built from knowledge base |
 | Issue type extensibility | Contractor-owned enum via knowledge base | AI constrained to known list; contractor adds types via service catalog |
 | PDF library | `@react-pdf/renderer` | Puppeteer explicitly ruled out |
 | Database / Auth / Storage | Supabase | Single platform for all three |
 | Hosting | Vercel | CI/CD from day one |
-| Image resize | `sharp` | Resize to max 1200px before sending to Claude |
-| Phase 0 / Phase 1 sequencing | Running in parallel | Infrastructure is independent of prompt quality |
+| Image resize (upload) | Canvas API (client-side) | Resize before upload, no server round-trip |
+| Image resize (PDF) | `sharp` (server-side) | Composite bounding boxes onto photos for PDF |
+| Photo upload path | `{account_id}/{job_id}/{uuid}.jpg` | Natural account isolation in storage |
+| Photo storage access | Service role key in API route | Avoids need for storage RLS policies |
+| Phase 0 / Phase 1-2 sequencing | Running in parallel | Infrastructure is independent of prompt quality |
 
 ---
 
@@ -88,3 +108,5 @@ Gate: do not start Phase 2 until contractor can log in on a phone browser.
 - Run eval (requires labeled `expected.json`): `npm run eval`
 - Eval thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - Issue types are defined per-service in the knowledge base (`eval/run.ts` and `eval/preview.ts`)
+- GitHub: `github.com/bnolcat-netizen/RA-Inspector-Estimator`
+- Vercel: `ra-inspector-estimator.vercel.app`
