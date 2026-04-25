@@ -407,13 +407,13 @@ export default function EstimatePage() {
             {missingQty} line item{missingQty !== 1 ? 's' : ''} still need{missingQty === 1 ? 's' : ''} a quantity before PDF generation.
           </p>
         )}
-        <a
-          href={estimate ? `/api/pdf/${estimate.id}` : '#'}
-          aria-disabled={missingQty > 0}
-          className={`flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 ${missingQty > 0 ? 'opacity-40 pointer-events-none' : ''}`}
+        <button
+          disabled={missingQty > 0 || !estimate}
+          onClick={() => { if (estimate) window.open(`/api/pdf/${estimate.id}`, '_blank') }}
+          className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-40"
         >
           Generate PDF
-        </a>
+        </button>
       </div>
     </div>
   )

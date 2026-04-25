@@ -6,6 +6,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { EstimatePDF, type PdfEstimateData, type PdfPhoto } from '@/lib/pdf/template'
 import React from 'react'
 
+export const maxDuration = 60
+
 const SEVERITY_COLOR: Record<string, string> = {
   low: '#6b7280',
   medium: '#d97706',
