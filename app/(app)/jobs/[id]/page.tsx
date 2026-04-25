@@ -79,9 +79,10 @@ export default function JobDetailPage() {
       .then(({ job, photos }) => {
         setJob(job)
         setPhotos(
-          (photos ?? []).map((p: { id: string; signed_url: string }) => ({
-            ...p,
-            analysis_status: 'complete' as const,
+          (photos ?? []).map((p: { id: string; signed_url: string; analysis_status: Photo['analysis_status'] }) => ({
+            id: p.id,
+            signed_url: p.signed_url,
+            analysis_status: p.analysis_status ?? 'pending',
           }))
         )
       })

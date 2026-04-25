@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     const { data: photoRecords } = await supabase
       .from('photos')
-      .select('id, storage_path')
+      .select('id, storage_path, analysis_status')
       .eq('job_id', id)
       .eq('account_id', user.account_id)
       .order('created_at', { ascending: true })
@@ -31,7 +31,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         const { data } = await service.storage
           .from('photos')
           .createSignedUrl(p.storage_path, 60 * 60)
-        return { id: p.id, signed_url: data?.signedUrl ?? '' }
+        return { id: p.id, signed_url: data?.signedUrl ?? '', analysis_status: p.analysis_status }
       })
     )
 

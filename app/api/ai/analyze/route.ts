@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { analyzePhoto } from '@/lib/ai/service'
+import { analyzePhoto, type AccountKnowledgeBase } from '@/lib/ai/service'
 import { DEFAULT_KNOWLEDGE_BASE } from '@/lib/ai/knowledge-base'
 
 export async function POST(request: NextRequest) {
@@ -48,7 +48,32 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await imageBlob.arrayBuffer())
     const imageBase64 = buffer.toString('base64')
 
-    const result = await analyzePhoto(imageBase64, 'image/jpeg', DEFAULT_KNOWLEDGE_BASE)
+    const [{ data: account }, { data: catalogItems }] = await Promise.all([
+      service.from('accounts').select('name').eq('id', accountId).single(),
+      service
+        .from('service_catalog')
+        .select('name, description, unit, issue_types')
+        .eq('account_id', accountId)
+        .eq('active', true)
+        .order('sort_order', { ascending: true }),
+    ])
+
+    const knowledgeBase: AccountKnowledgeBase =
+      (catalogItems?.length ?? 0) > 0
+        ? {
+            company_name: account?.name ?? DEFAULT_KNOWLEDGE_BASE.company_name,
+            materials: DEFAULT_KNOWLEDGE_BASE.materials,
+            terminology: DEFAULT_KNOWLEDGE_BASE.terminology,
+            service_catalog: catalogItems!.map((item) => ({
+              name: item.name,
+              description: item.description ?? undefined,
+              unit: item.unit ?? undefined,
+              issue_types: (item.issue_types as string[]) ?? [],
+            })),
+          }
+        : DEFAULT_KNOWLEDGE_BASE
+
+    const result = await analyzePhoto(imageBase64, 'image/jpeg', knowledgeBase)
 
     if (result.findings.length > 0) {
       const rows = result.findings.map((f) => ({

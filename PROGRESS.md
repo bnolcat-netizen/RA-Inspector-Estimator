@@ -103,6 +103,9 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - **Feedback analytics page**: in-app page aggregating confirmed/edited/rejected rates by `issue_type` — data-driven prompt tuning signal
 - **Middleware deprecation**: renamed to `proxy.ts` per Next.js 16 convention
 - **Confidence filtering**: `confidence` column added to `findings`; low-confidence AI suggestions hidden by default in review UI with a "N hidden" toggle to reveal
+- **README**: full usage and self-hosting documentation added (`README.md`)
+- **Bug fix — AI knowledge base**: `/api/ai/analyze` was always using `DEFAULT_KNOWLEDGE_BASE` regardless of account catalog. Now loads account name + active service catalog from DB; falls back to default only if catalog is not yet seeded.
+- **Bug fix — photo status badges**: job detail page was hardcoding `analysis_status: 'complete'` for all existing photos on load. `/api/jobs/[id]` now returns `analysis_status` per photo; page uses the real value (falls back to `'pending'` for any null rows).
 - Remaining: onboard contractor, gather feedback
 
 ---
@@ -111,6 +114,8 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - Client-side blur detection (`lib/utils/image.ts`) — deferred post-handoff
 - Box repositioning in edit mode (drag corners to resize/move) — deferred post-handoff
 - Image resize decision: client-side Canvas API used for upload; `sharp` used server-side for PDF annotation
+- PDF null-quantity guard is UI-only (`/api/pdf/[id]` does not reject requests with null quantities; only the Generate PDF button is disabled in the UI)
+- Storage path preserves original file extension even though `resizeImage()` always outputs JPEG; a `.heic` upload is stored as `uuid.heic` with JPEG bytes (cosmetic only — analysis and PDF are unaffected)
 
 ---
 

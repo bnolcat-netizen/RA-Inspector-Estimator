@@ -264,6 +264,7 @@ export interface AnalysisResult {
 
 export async function analyzePhoto(
   imageBase64: string,
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp',
   knowledgeBase: AccountKnowledgeBase
 ): Promise<AnalysisResult>
 ```
