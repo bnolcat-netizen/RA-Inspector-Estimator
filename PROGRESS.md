@@ -58,14 +58,23 @@
 
 ## What's Next
 
-### Phase 0 — Remaining (parallel track)
-1. Label `eval/expected.json` — review each photo, mark required vs. optional findings
-2. Run `npm run eval` — see where recall/precision land against thresholds
-3. Iterate on prompt and/or knowledge base for systematic misses
-4. Get the contractor's actual service catalog to replace the draft knowledge base
-5. Contractor signs off on output quality
+### Phase 0 — Revised approach
 
-Run eval: `npm run eval`
+**The contractor is now actively using the app.** His confirm/edit/reject decisions on real job photos are higher-quality ground truth than anything we'd build by manually labeling `eval/photos/`. The static eval harness is now a **regression tool** — useful after prompt or knowledge base changes to catch regressions — not a quality gate.
+
+Real quality signal is already flowing into the DB:
+- `status = 'rejected'` → hallucination
+- `status = 'edited'` → right issue, wrong detail
+- `status = 'confirmed'` → correct
+- `ai_raw` → original AI output for every finding, never overwritten
+
+**Remaining:**
+1. Get the contractor's actual service catalog and pricing to replace the draft knowledge base
+2. Build a feedback report — a script or internal page that aggregates edits/rejections by `issue_type` so prompt tuning is data-driven rather than intuition-driven
+3. After a few jobs accumulate, export a selection of confirmed findings into `eval/expected.json` as a stable regression benchmark reflecting his real standards
+4. Use patterns surfaced in (2) to iterate on the prompt and knowledge base
+
+Run eval (regression guard only): `npm run eval`
 Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 
 ### Phase 4 — Estimate + PDF Generation (complete)
@@ -99,6 +108,7 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - `middleware.ts` deprecation warning in Next.js 16 — needs rename to `proxy.ts` (non-breaking)
 - Client-side blur detection (`lib/utils/image.ts`) — deferred post-handoff
 - Box repositioning in edit mode (drag corners to resize/move) — deferred post-handoff
+- Feedback analytics — script/page aggregating edit/rejection rates by `issue_type` to make prompt tuning data-driven
 - Image resize decision: client-side Canvas API used for upload; `sharp` used server-side for PDF annotation
 
 ---
@@ -132,8 +142,9 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 ## Reference
 
 - Run preview (no labels needed): `npm run preview`
-- Run eval (requires labeled `expected.json`): `npm run eval`
+- Run eval (regression guard — requires labeled `expected.json`): `npm run eval`
 - Eval thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
+- Real quality signal: query `findings` table — confirmed/edited/rejected by `issue_type`
 - Issue types are defined per-service in the knowledge base (`eval/run.ts` and `eval/preview.ts`)
 - GitHub: `github.com/bnolcat-netizen/RA-Inspector-Estimator`
 - Vercel: `ra-inspector-estimator.vercel.app`
