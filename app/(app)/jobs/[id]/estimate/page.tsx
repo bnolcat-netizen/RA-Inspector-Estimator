@@ -53,6 +53,7 @@ export default function EstimatePage() {
   const [estimate, setEstimate] = useState<Estimate | null>(null)
   const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<LineItem>>({})
   const [showAddForm, setShowAddForm] = useState(false)
@@ -60,15 +61,20 @@ export default function EstimatePage() {
   const [saving, setSaving] = useState(false)
 
   const loadEstimate = useCallback(async () => {
-    const res = await fetch(`/api/estimates?job_id=${jobId}`)
-    const { estimate: est } = await res.json()
-    if (!est) { setLoading(false); return }
+    try {
+      const res = await fetch(`/api/estimates?job_id=${jobId}`)
+      const { estimate: est } = await res.json()
+      if (!est) { setLoading(false); return }
 
-    const detailRes = await fetch(`/api/estimates/${est.id}`)
-    const { estimate: detail, line_items } = await detailRes.json()
-    setEstimate(detail)
-    setLineItems(line_items ?? [])
-    setLoading(false)
+      const detailRes = await fetch(`/api/estimates/${est.id}`)
+      const { estimate: detail, line_items } = await detailRes.json()
+      setEstimate(detail)
+      setLineItems(line_items ?? [])
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [jobId])
 
   useEffect(() => { loadEstimate() }, [loadEstimate])
@@ -86,7 +92,8 @@ export default function EstimatePage() {
   }
 
   async function deleteLineItem(id: string) {
-    await fetch(`/api/line-items/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/line-items/${id}`, { method: 'DELETE' })
+    if (!res.ok) return
     const updated = lineItems.filter((li) => li.id !== id)
     setLineItems(updated)
     syncTotals(updated)
@@ -163,6 +170,13 @@ export default function EstimatePage() {
 
   if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
 
+  if (error) return (
+    <div className="py-16 text-center text-gray-400 text-sm">
+      Could not load estimate.{' '}
+      <button onClick={() => { setError(false); setLoading(true); loadEstimate() }} className="text-violet-600 underline">Retry</button>
+    </div>
+  )
+
   if (!estimate) return (
     <div className="py-16 text-center text-gray-400 text-sm">
       No estimate found.{' '}
@@ -198,14 +212,14 @@ export default function EstimatePage() {
                 {isEditing ? (
                   <div className="space-y-2">
                     <input
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+                      className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
                       value={editDraft.name ?? ''}
                       onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}
                       placeholder="Name"
                     />
                     <div className="flex gap-2">
                       <input
-                        className="w-24 text-sm border border-gray-300 rounded-lg px-3 py-2"
+                        className="w-24 text-base border border-gray-300 rounded-lg px-3 py-2"
                         value={editDraft.quantity ?? ''}
                         onChange={(e) => setEditDraft((d) => ({ ...d, quantity: e.target.value as unknown as number }))}
                         placeholder="Qty"
@@ -214,23 +228,23 @@ export default function EstimatePage() {
                         step="0.01"
                       />
                       <input
-                        className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2"
+                        className="flex-1 text-base border border-gray-300 rounded-lg px-3 py-2"
                         value={editDraft.unit ?? ''}
                         onChange={(e) => setEditDraft((d) => ({ ...d, unit: e.target.value }))}
                         placeholder="Unit"
                       />
                       <input
-                        className="w-28 text-sm border border-gray-300 rounded-lg px-3 py-2"
+                        className="w-28 text-base border border-gray-300 rounded-lg px-3 py-2"
                         value={editDraft.unit_price ?? ''}
                         onChange={(e) => setEditDraft((d) => ({ ...d, unit_price: e.target.value as unknown as number }))}
-                        placeholder="Unit price"
+                        placeholder="$/unit"
                         type="number"
                         min="0"
                         step="0.01"
                       />
                     </div>
                     <input
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+                      className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
                       value={editDraft.notes ?? ''}
                       onChange={(e) => setEditDraft((d) => ({ ...d, notes: e.target.value }))}
                       placeholder="Notes (optional)"
@@ -239,13 +253,13 @@ export default function EstimatePage() {
                       <button
                         disabled={saving}
                         onClick={() => submitEdit(item.id)}
-                        className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
+                        className="flex-1 py-3 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
                       >
-                        Save
+                        {saving ? 'Saving…' : 'Save'}
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="flex-1 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
+                        className="flex-1 py-3 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
                       >
                         Cancel
                       </button>
@@ -275,16 +289,16 @@ export default function EstimatePage() {
                           {item.quantity} {item.unit} × {fmt(item.unit_price)}
                         </span>
                       )}
-                      <div className="ml-auto flex gap-3">
+                      <div className="ml-auto flex gap-2">
                         <button
                           onClick={() => { setEditingId(item.id); setEditDraft({ name: item.name, quantity: item.quantity, unit_price: item.unit_price, unit: item.unit ?? '', notes: item.notes ?? '' }) }}
-                          className="text-xs text-violet-600 hover:text-violet-800"
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-violet-700 bg-violet-50 hover:bg-violet-100"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => deleteLineItem(item.id)}
-                          className="text-xs text-red-400 hover:text-red-600"
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100"
                         >
                           Remove
                         </button>
@@ -303,14 +317,15 @@ export default function EstimatePage() {
         <div className="rounded-xl border border-dashed border-gray-300 p-4 mb-4 space-y-2">
           <p className="text-xs font-semibold text-gray-500 mb-1">New line item</p>
           <input
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+            className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
             value={newItem.name}
             onChange={(e) => setNewItem((d) => ({ ...d, name: e.target.value }))}
             placeholder="Name *"
+            autoFocus
           />
           <div className="flex gap-2">
             <input
-              className="w-24 text-sm border border-gray-300 rounded-lg px-3 py-2"
+              className="w-24 text-base border border-gray-300 rounded-lg px-3 py-2"
               value={newItem.quantity}
               onChange={(e) => setNewItem((d) => ({ ...d, quantity: e.target.value }))}
               placeholder="Qty"
@@ -319,16 +334,16 @@ export default function EstimatePage() {
               step="0.01"
             />
             <input
-              className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2"
+              className="flex-1 text-base border border-gray-300 rounded-lg px-3 py-2"
               value={newItem.unit}
               onChange={(e) => setNewItem((d) => ({ ...d, unit: e.target.value }))}
               placeholder="Unit"
             />
             <input
-              className="w-28 text-sm border border-gray-300 rounded-lg px-3 py-2"
+              className="w-28 text-base border border-gray-300 rounded-lg px-3 py-2"
               value={newItem.unit_price}
               onChange={(e) => setNewItem((d) => ({ ...d, unit_price: e.target.value }))}
-              placeholder="Unit price"
+              placeholder="$/unit"
               type="number"
               min="0"
               step="0.01"
@@ -338,13 +353,13 @@ export default function EstimatePage() {
             <button
               disabled={saving || !newItem.name.trim()}
               onClick={addManualItem}
-              className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
+              className="flex-1 py-3 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
             >
-              Add
+              {saving ? 'Adding…' : 'Add'}
             </button>
             <button
               onClick={() => setShowAddForm(false)}
-              className="flex-1 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100"
+              className="flex-1 py-3 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100"
             >
               Cancel
             </button>
@@ -353,7 +368,7 @@ export default function EstimatePage() {
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          className="w-full py-2.5 mb-4 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-violet-400 hover:text-violet-600"
+          className="w-full py-3 mb-4 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-violet-400 hover:text-violet-600"
         >
           + Add line item
         </button>
@@ -373,7 +388,7 @@ export default function EstimatePage() {
               type="number"
               min="0"
               step="0.01"
-              className="w-24 text-right text-sm border border-gray-200 rounded-lg px-2 py-1"
+              className="w-24 text-right text-base border border-gray-200 rounded-lg px-2 py-2"
               defaultValue={estimate.discount ?? 0}
               onBlur={(e) => updateDiscount(Number(e.target.value) || 0)}
             />

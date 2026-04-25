@@ -28,3 +28,45 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getCurrentUser()
+    const service = createServiceClient()
+
+    const body = await request.json()
+    const { photo_id, job_id, box_x, box_y, box_width, box_height, issue_type, severity, description, suggested_service } = body
+
+    if (!photo_id || !job_id || !issue_type || !description) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    const { data: finding, error } = await service
+      .from('findings')
+      .insert({
+        photo_id,
+        job_id,
+        account_id: user.account_id,
+        box_x: box_x ?? null,
+        box_y: box_y ?? null,
+        box_width: box_width ?? null,
+        box_height: box_height ?? null,
+        issue_type,
+        severity: severity ?? 'medium',
+        description,
+        suggested_service: suggested_service ?? '',
+        status: 'confirmed',
+        ai_raw: null,
+        confirmed_at: new Date().toISOString(),
+        confirmed_by: user.id,
+      })
+      .select('id, issue_type, severity, description, suggested_service, status, box_x, box_y, box_width, box_height, notes')
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json({ finding })
+  } catch {
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+}

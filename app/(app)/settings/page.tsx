@@ -34,6 +34,7 @@ export default function SettingsPage() {
   const [adding, setAdding] = useState(false)
   const [addDraft, setAddDraft] = useState<Draft>(EMPTY_DRAFT)
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/catalog')
@@ -53,6 +54,7 @@ export default function SettingsPage() {
       active: item.active,
     })
     setAdding(false)
+    setConfirmDeleteId(null)
   }
 
   async function saveEdit(id: string) {
@@ -76,10 +78,10 @@ export default function SettingsPage() {
   }
 
   async function deleteItem(id: string) {
-    if (!confirm('Delete this service? This cannot be undone.')) return
     await fetch(`/api/catalog/${id}`, { method: 'DELETE' })
     setItems((prev) => prev.filter((i) => i.id !== id))
     if (editingId === id) setEditingId(null)
+    setConfirmDeleteId(null)
   }
 
   async function addItem() {
@@ -123,7 +125,7 @@ export default function SettingsPage() {
         {!adding && (
           <button
             onClick={() => { setAdding(true); setEditingId(null); setAddDraft(EMPTY_DRAFT) }}
-            className="text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 px-3 py-1.5 rounded-lg"
+            className="text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 px-4 py-2.5 rounded-lg"
           >
             + Add service
           </button>
@@ -139,13 +141,13 @@ export default function SettingsPage() {
             <button
               onClick={addItem}
               disabled={saving || !addDraft.name.trim()}
-              className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
+              className="flex-1 py-3 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Add'}
             </button>
             <button
               onClick={() => setAdding(false)}
-              className="flex-1 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
+              className="flex-1 py-3 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
             >
               Cancel
             </button>
@@ -173,22 +175,39 @@ export default function SettingsPage() {
                     <button
                       onClick={() => saveEdit(item.id)}
                       disabled={saving || !editDraft.name.trim()}
-                      className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
+                      className="flex-1 py-3 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
                     >
                       {saving ? 'Saving…' : 'Save'}
                     </button>
                     <button
-                      onClick={() => setEditingId(null)}
-                      className="flex-1 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
+                      onClick={() => { setEditingId(null); setConfirmDeleteId(null) }}
+                      className="flex-1 py-3 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
                     >
                       Cancel
                     </button>
-                    <button
-                      onClick={() => deleteItem(item.id)}
-                      className="py-2 px-3 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100"
-                    >
-                      Delete
-                    </button>
+                    {confirmDeleteId === item.id ? (
+                      <>
+                        <button
+                          onClick={() => deleteItem(item.id)}
+                          className="py-3 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="py-3 px-3 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
+                        >
+                          No
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(item.id)}
+                        className="py-3 px-3 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </>
               ) : (
@@ -218,17 +237,17 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => toggleActive(item)}
-                      className={`text-xs px-2 py-1 rounded-lg font-semibold ${item.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}
-                      title={item.active ? 'Active — click to deactivate' : 'Inactive — click to activate'}
+                      className={`text-xs font-semibold px-3 py-2 rounded-lg ${item.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}
+                      title={item.active ? 'Active — tap to deactivate' : 'Inactive — tap to activate'}
                     >
                       {item.active ? 'Active' : 'Off'}
                     </button>
                     <button
                       onClick={() => startEdit(item)}
-                      className="text-xs px-2 py-1 rounded-lg text-gray-500 bg-gray-100 hover:bg-gray-200 font-semibold"
+                      className="text-xs font-semibold px-3 py-2 rounded-lg text-gray-500 bg-gray-100 hover:bg-gray-200"
                     >
                       Edit
                     </button>
@@ -261,7 +280,7 @@ function IssueTypesInput({ value, onChange }: { value: string[]; onChange: (v: s
         Issue types <span className="font-normal text-gray-400">(comma-separated)</span>
       </label>
       <input
-        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+        className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
         onBlur={handleBlur}
@@ -277,7 +296,7 @@ function ItemForm({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => v
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Service name *</label>
         <input
-          className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+          className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
           value={draft.name}
           onChange={(e) => onChange({ ...draft, name: e.target.value })}
           placeholder="e.g. Shingle Replacement"
@@ -286,7 +305,7 @@ function ItemForm({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => v
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
         <textarea
-          className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 resize-none"
+          className="w-full text-base border border-gray-300 rounded-lg px-3 py-2 resize-none"
           rows={2}
           value={draft.description ?? ''}
           onChange={(e) => onChange({ ...draft, description: e.target.value })}
@@ -297,7 +316,7 @@ function ItemForm({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => v
         <div className="flex-1">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
           <select
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+            className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
             value={draft.unit ?? ''}
             onChange={(e) => onChange({ ...draft, unit: e.target.value })}
           >
@@ -311,7 +330,7 @@ function ItemForm({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => v
             type="number"
             min="0"
             step="0.01"
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+            className="w-full text-base border border-gray-300 rounded-lg px-3 py-2"
             value={draft.default_price ?? ''}
             onChange={(e) => onChange({ ...draft, default_price: e.target.value ? parseFloat(e.target.value) : null })}
             placeholder="0.00"

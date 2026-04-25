@@ -85,6 +85,7 @@ export default function JobDetailPage() {
           }))
         )
       })
+      .catch(() => { /* job stays null → renders "not found" */ })
       .finally(() => setLoading(false))
   }, [id])
 

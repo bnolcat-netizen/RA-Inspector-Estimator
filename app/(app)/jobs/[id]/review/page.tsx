@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -42,8 +42,24 @@ function hasBox(f: Finding): f is Finding & { box_x: number; box_y: number; box_
   return f.box_x != null && f.box_y != null && f.box_width != null && f.box_height != null
 }
 
+function clientToPercent(clientX: number, clientY: number, el: SVGSVGElement) {
+  const rect = el.getBoundingClientRect()
+  return {
+    x: Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)),
+    y: Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100)),
+  }
+}
+
+const EMPTY_ADD_DRAFT = {
+  issue_type: '',
+  severity: 'medium' as Finding['severity'],
+  description: '',
+  suggested_service: '',
+}
+
 export default function ReviewPage() {
   const { id: jobId } = useParams<{ id: string }>()
+  const svgRef = useRef<SVGSVGElement>(null)
 
   const [photos, setPhotos] = useState<Photo[]>([])
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
@@ -53,6 +69,12 @@ export default function ReviewPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<Finding>>({})
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
+
+  const [drawMode, setDrawMode] = useState(false)
+  const [drawAnchor, setDrawAnchor] = useState<{ x: number; y: number } | null>(null)
+  const [drawPreview, setDrawPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [pendingBox, setPendingBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
+  const [addDraft, setAddDraft] = useState(EMPTY_ADD_DRAFT)
 
   useEffect(() => {
     fetch(`/api/jobs/${jobId}`)
@@ -70,6 +92,10 @@ export default function ReviewPage() {
     setLoadingFindings(true)
     setEditingId(null)
     setSelectedFindingId(null)
+    setDrawMode(false)
+    setDrawAnchor(null)
+    setDrawPreview(null)
+    setPendingBox(null)
     fetch(`/api/findings?photo_id=${selectedPhotoId}`)
       .then((r) => r.json())
       .then(({ findings }) => setFindings(findings ?? []))
@@ -105,6 +131,81 @@ export default function ReviewPage() {
   function selectFinding(findingId: string) {
     setSelectedFindingId(findingId)
     document.getElementById(`finding-${findingId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
+  function enterDrawMode() {
+    setPendingBox(null)
+    setEditingId(null)
+    setDrawMode(true)
+  }
+
+  function exitDrawMode() {
+    setDrawMode(false)
+    setDrawAnchor(null)
+    setDrawPreview(null)
+  }
+
+  function handleSvgPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    if (!drawMode || !svgRef.current) return
+    e.preventDefault()
+    svgRef.current.setPointerCapture(e.pointerId)
+    const pos = clientToPercent(e.clientX, e.clientY, svgRef.current)
+    setDrawAnchor(pos)
+    setDrawPreview({ x: pos.x, y: pos.y, w: 0, h: 0 })
+  }
+
+  function handleSvgPointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (!drawMode || !drawAnchor || !svgRef.current) return
+    const pos = clientToPercent(e.clientX, e.clientY, svgRef.current)
+    setDrawPreview({
+      x: Math.min(drawAnchor.x, pos.x),
+      y: Math.min(drawAnchor.y, pos.y),
+      w: Math.abs(pos.x - drawAnchor.x),
+      h: Math.abs(pos.y - drawAnchor.y),
+    })
+  }
+
+  function handleSvgPointerUp(e: React.PointerEvent<SVGSVGElement>) {
+    if (!drawMode || !drawAnchor || !svgRef.current) return
+    const pos = clientToPercent(e.clientX, e.clientY, svgRef.current)
+    const box = {
+      x: Math.min(drawAnchor.x, pos.x),
+      y: Math.min(drawAnchor.y, pos.y),
+      width: Math.abs(pos.x - drawAnchor.x),
+      height: Math.abs(pos.y - drawAnchor.y),
+    }
+    setDrawAnchor(null)
+    setDrawPreview(null)
+    setDrawMode(false)
+    if (box.width < 2 || box.height < 2) return
+    setPendingBox(box)
+    setAddDraft(EMPTY_ADD_DRAFT)
+  }
+
+  async function submitAdd() {
+    if (!pendingBox || !selectedPhotoId) return
+    const res = await fetch('/api/findings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        photo_id: selectedPhotoId,
+        job_id: jobId,
+        box_x: pendingBox.x,
+        box_y: pendingBox.y,
+        box_width: pendingBox.width,
+        box_height: pendingBox.height,
+        ...addDraft,
+      }),
+    })
+    if (!res.ok) return
+    const { finding } = await res.json()
+    setFindings((prev) => [...prev, finding])
+    setPendingBox(null)
+  }
+
+  function cancelAdd() {
+    setPendingBox(null)
+    setAddDraft(EMPTY_ADD_DRAFT)
   }
 
   const selectedPhoto = photos.find((p) => p.id === selectedPhotoId)
@@ -153,10 +254,15 @@ export default function ReviewPage() {
 
           {/* Bounding box overlay */}
           <svg
+            ref={svgRef}
             className="absolute inset-0 w-full h-full"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             aria-hidden="true"
+            style={{ cursor: drawMode ? 'crosshair' : 'default' }}
+            onPointerDown={handleSvgPointerDown}
+            onPointerMove={handleSvgPointerMove}
+            onPointerUp={handleSvgPointerUp}
           >
             {visibleBoxFindings.map((finding) => {
               if (!hasBox(finding)) return null
@@ -173,15 +279,39 @@ export default function ReviewPage() {
                   fillOpacity={isSelected ? 0.25 : 0.1}
                   stroke={color}
                   strokeWidth={isSelected ? 0.8 : 0.5}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => selectFinding(finding.id)}
+                  style={{ cursor: drawMode ? 'crosshair' : 'pointer' }}
+                  onClick={() => !drawMode && selectFinding(finding.id)}
                 />
               )
             })}
+            {drawPreview && (
+              <rect
+                x={drawPreview.x}
+                y={drawPreview.y}
+                width={drawPreview.w}
+                height={drawPreview.h}
+                fill="rgba(124,58,237,0.15)"
+                stroke="#7c3aed"
+                strokeWidth={0.8}
+                strokeDasharray="3,2"
+              />
+            )}
+            {pendingBox && (
+              <rect
+                x={pendingBox.x}
+                y={pendingBox.y}
+                width={pendingBox.width}
+                height={pendingBox.height}
+                fill="rgba(124,58,237,0.1)"
+                stroke="#7c3aed"
+                strokeWidth={0.8}
+                strokeDasharray="3,2"
+              />
+            )}
           </svg>
 
-          {/* Numbered badges */}
-          {visibleBoxFindings.map((finding, i) => {
+          {/* Numbered badges — hidden in draw mode so they don't intercept touches */}
+          {!drawMode && visibleBoxFindings.map((finding, i) => {
             if (!hasBox(finding)) return null
             const color = SEVERITY_COLOR[finding.severity]
             const isSelected = finding.id === selectedFindingId
@@ -204,23 +334,104 @@ export default function ReviewPage() {
               </button>
             )
           })}
+
+          {/* Draw mode hint */}
+          {drawMode && (
+            <div className="absolute inset-0 flex items-end justify-center pb-3 pointer-events-none">
+              <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full">
+                Drag to mark an issue
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Findings */}
+      {/* Add finding form — appears after drawing a box */}
+      {pendingBox && (
+        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 mb-4 space-y-3">
+          <p className="text-sm font-semibold text-violet-700">Describe the finding</p>
+          <input
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
+            value={addDraft.issue_type}
+            onChange={(e) => setAddDraft((d) => ({ ...d, issue_type: e.target.value }))}
+            placeholder="Issue type (e.g. missing shingles)"
+            autoFocus
+          />
+          <select
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
+            value={addDraft.severity}
+            onChange={(e) => setAddDraft((d) => ({ ...d, severity: e.target.value as Finding['severity'] }))}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+          <textarea
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white resize-none"
+            rows={3}
+            value={addDraft.description}
+            onChange={(e) => setAddDraft((d) => ({ ...d, description: e.target.value }))}
+            placeholder="Description"
+          />
+          <input
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
+            value={addDraft.suggested_service}
+            onChange={(e) => setAddDraft((d) => ({ ...d, suggested_service: e.target.value }))}
+            placeholder="Suggested service"
+          />
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={submitAdd}
+              disabled={!addDraft.issue_type || !addDraft.description}
+              className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-40"
+            >
+              Add Finding
+            </button>
+            <button
+              onClick={cancelAdd}
+              className="flex-1 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Findings list */}
       {loadingFindings ? (
         <p className="text-center text-sm text-gray-400 py-8">Loading findings…</p>
       ) : findings.length === 0 ? (
-        <p className="text-center text-sm text-gray-400 py-8">No findings for this photo.</p>
+        <div className="py-8 text-center space-y-3">
+          <p className="text-sm text-gray-400">No findings for this photo.</p>
+          {!pendingBox && (
+            <button
+              onClick={enterDrawMode}
+              className="text-sm font-semibold text-violet-600 hover:text-violet-700"
+            >
+              + Add a finding manually
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-gray-700">{findings.length} finding{findings.length !== 1 ? 's' : ''}</p>
-            <p className="text-xs text-gray-400">{confirmedCount} confirmed · {pendingCount} pending</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-gray-400">{confirmedCount} confirmed · {pendingCount} pending</p>
+              {!pendingBox && (
+                <button
+                  onClick={drawMode ? exitDrawMode : enterDrawMode}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${drawMode ? 'bg-gray-200 text-gray-600' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}
+                >
+                  {drawMode ? 'Cancel' : '+ Add'}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
-            {findings.map((finding, i) => {
+            {findings.map((finding) => {
               const isEditing = editingId === finding.id
               const isDone = finding.status === 'confirmed' || finding.status === 'edited' || finding.status === 'rejected'
               const isSelected = selectedFindingId === finding.id
