@@ -4,7 +4,8 @@ dist/
 .env
 .env.local
 
-# Eval results are stored locally; add specific result files to git if you want to track them
+# Eval photos and results are stored locally
+eval/photos/
 eval/results/*.json
 
 # OS / editor
