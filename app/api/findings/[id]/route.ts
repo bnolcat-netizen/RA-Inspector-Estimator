@@ -49,7 +49,7 @@ export async function PATCH(
       .from('findings')
       .update(update)
       .eq('id', id)
-      .select('id, issue_type, severity, description, suggested_service, status')
+      .select('id, issue_type, severity, description, suggested_service, status, confidence')
       .single()
 
     return NextResponse.json({ finding: updated })

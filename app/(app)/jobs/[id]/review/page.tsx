@@ -17,6 +17,7 @@ interface Finding {
   description: string
   suggested_service: string
   status: 'ai_suggested' | 'confirmed' | 'rejected' | 'edited'
+  confidence?: 'low' | 'medium' | 'high' | null
   notes?: string
   box_x?: number | null
   box_y?: number | null
@@ -69,6 +70,8 @@ export default function ReviewPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<Finding>>({})
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
+
+  const [showLowConfidence, setShowLowConfidence] = useState(false)
 
   const [drawMode, setDrawMode] = useState(false)
   const [drawAnchor, setDrawAnchor] = useState<{ x: number; y: number } | null>(null)
@@ -211,7 +214,11 @@ export default function ReviewPage() {
   const selectedPhoto = photos.find((p) => p.id === selectedPhotoId)
   const confirmedCount = findings.filter((f) => f.status === 'confirmed' || f.status === 'edited').length
   const pendingCount = findings.filter((f) => f.status === 'ai_suggested').length
-  const visibleBoxFindings = findings.filter((f) => f.status !== 'rejected' && hasBox(f))
+  const lowConfidenceCount = findings.filter((f) => f.status === 'ai_suggested' && f.confidence === 'low').length
+  const visibleFindings = findings.filter(
+    (f) => !(f.status === 'ai_suggested' && f.confidence === 'low' && !showLowConfidence)
+  )
+  const visibleBoxFindings = visibleFindings.filter((f) => f.status !== 'rejected' && hasBox(f))
 
   if (loadingPhotos) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
   if (!photos.length) return (
@@ -418,7 +425,17 @@ export default function ReviewPage() {
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-gray-700">{findings.length} finding{findings.length !== 1 ? 's' : ''}</p>
             <div className="flex items-center gap-3">
-              <p className="text-xs text-gray-400">{confirmedCount} confirmed · {pendingCount} pending</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-gray-400">{confirmedCount} confirmed · {pendingCount} pending</p>
+                {lowConfidenceCount > 0 && (
+                  <button
+                    onClick={() => setShowLowConfidence((v) => !v)}
+                    className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  >
+                    {showLowConfidence ? 'Hide low-confidence' : `${lowConfidenceCount} hidden`}
+                  </button>
+                )}
+              </div>
               {!pendingBox && (
                 <button
                   onClick={drawMode ? exitDrawMode : enterDrawMode}
@@ -431,7 +448,7 @@ export default function ReviewPage() {
           </div>
 
           <div className="space-y-3">
-            {findings.map((finding) => {
+            {visibleFindings.map((finding) => {
               const isEditing = editingId === finding.id
               const isDone = finding.status === 'confirmed' || finding.status === 'edited' || finding.status === 'rejected'
               const isSelected = selectedFindingId === finding.id
@@ -507,6 +524,11 @@ export default function ReviewPage() {
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_BADGE[finding.severity]}`}>
                             {finding.severity}
                           </span>
+                          {finding.confidence === 'low' && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                              ? low confidence
+                            </span>
+                          )}
                           <span className="text-sm font-semibold text-gray-800">
                             {finding.issue_type.replace(/_/g, ' ')}
                           </span>

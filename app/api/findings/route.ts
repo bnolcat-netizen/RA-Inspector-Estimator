@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const query = service
       .from('findings')
-      .select('id, issue_type, severity, description, suggested_service, status, box_x, box_y, box_width, box_height, notes')
+      .select('id, issue_type, severity, description, suggested_service, status, box_x, box_y, box_width, box_height, notes, confidence')
       .eq('account_id', user.account_id)
       .order('created_at', { ascending: true })
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         confirmed_at: new Date().toISOString(),
         confirmed_by: user.id,
       })
-      .select('id, issue_type, severity, description, suggested_service, status, box_x, box_y, box_width, box_height, notes')
+      .select('id, issue_type, severity, description, suggested_service, status, box_x, box_y, box_width, box_height, notes, confidence')
       .single()
 
     if (error) throw error
