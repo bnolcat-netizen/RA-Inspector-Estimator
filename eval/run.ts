@@ -2,102 +2,13 @@ import * as fs from 'fs'
 import * as path from 'path'
 import sharp from 'sharp'
 import 'dotenv/config'
-import { analyzePhoto, type AccountKnowledgeBase, type Finding } from '../lib/ai/service'
+import { analyzePhoto, type Finding } from '../lib/ai/service'
+import { DEFAULT_KNOWLEDGE_BASE } from '../lib/ai/knowledge-base'
 
 // --- Thresholds (from docs/eval-harness.md) ---
 const THRESHOLD_RECALL = 0.85
 const THRESHOLD_PRECISION = 0.80
 const THRESHOLD_HALLUCINATION = 0.10
-
-// --- Draft knowledge base — replace with the contractor's actual catalog before Phase 3 ---
-// This draft is intentionally broad; iterate with the contractor during Phase 0 review.
-const KNOWLEDGE_BASE: AccountKnowledgeBase = {
-  company_name: 'Your Roofing Company',
-  materials: [
-    'Architectural asphalt shingles',
-    '3-tab asphalt shingles',
-    'Metal roofing (standing seam and corrugated)',
-    'TPO / EPDM flat roofing',
-    'Modified bitumen',
-    'Wood shake',
-  ],
-  service_catalog: [
-    {
-      name: 'Shingle Replacement',
-      description: 'Replace damaged, cracked, or missing shingles',
-      unit: 'square (100 sq ft)',
-      issue_types: ['cracked_shingle', 'missing_shingle', 'granule_loss', 'hail_damage', 'wind_damage', 'lifted_shingle'],
-    },
-    {
-      name: 'Flashing Repair',
-      description: 'Repair or reseal step flashing, drip edge, or counter flashing',
-      unit: 'linear ft',
-      issue_types: ['lifted_flashing', 'failed_sealant_at_flashing', 'separated_flashing'],
-    },
-    {
-      name: 'Flashing Replacement',
-      description: 'Full replacement of deteriorated or improperly installed flashing',
-      unit: 'linear ft',
-      issue_types: ['improper_flashing', 'rusted_flashing', 'corroded_flashing'],
-    },
-    {
-      name: 'Valley Repair',
-      description: 'Repair damaged or deteriorated roof valley',
-      unit: 'linear ft',
-      issue_types: ['damaged_valley', 'cracked_valley', 'open_valley'],
-    },
-    {
-      name: 'Ridge Cap Replacement',
-      description: 'Replace deteriorated or missing ridge cap shingles',
-      unit: 'linear ft',
-      issue_types: ['damaged_ridge_cap', 'missing_ridge_cap', 'cracked_ridge_cap'],
-    },
-    {
-      name: 'Pipe Boot / Vent Flashing Replacement',
-      description: 'Replace failed rubber boot or flashing around roof penetrations',
-      unit: 'each',
-      issue_types: ['pipe_boot_failure', 'cracked_pipe_boot', 'failed_vent_flashing'],
-    },
-    {
-      name: 'Chimney Flashing Repair',
-      description: 'Repair or replace chimney step flashing and counter flashing',
-      unit: 'each',
-      issue_types: ['improper_chimney_flashing', 'rusted_chimney_flashing', 'lifted_chimney_flashing'],
-    },
-    {
-      name: 'Roof Cleaning',
-      description: 'Soft wash removal of moss, algae, and lichen growth',
-      unit: 'square (100 sq ft)',
-      issue_types: ['moss_growth', 'algae_growth', 'lichen_growth'],
-    },
-    {
-      name: 'Gutter Repair',
-      description: 'Repair sagging, leaking, or damaged gutters and downspouts',
-      unit: 'linear ft',
-      issue_types: ['sagging_gutters', 'clogged_gutters', 'leaking_gutters', 'damaged_gutters'],
-    },
-    {
-      name: 'Fascia / Soffit Repair',
-      description: 'Replace rotted or damaged fascia or soffit boards',
-      unit: 'linear ft',
-      issue_types: ['rotted_fascia', 'rotted_soffit', 'damaged_fascia', 'damaged_soffit'],
-    },
-    {
-      name: 'Sealant / Caulk Application',
-      description: 'Apply or reapply roofing sealant at penetrations, seams, or exposed fasteners',
-      unit: 'each',
-      issue_types: ['exposed_nails', 'open_seam', 'failed_sealant'],
-    },
-    {
-      name: 'Full Roof Replacement',
-      description: 'Complete tear-off and replacement of roofing system',
-      unit: 'square (100 sq ft)',
-      issue_types: ['end_of_life', 'widespread_damage', 'multiple_layers', 'structural_damage'],
-    },
-  ],
-  terminology:
-    '"Square" means 100 square feet. Note if damage appears storm-related (hail, wind) — important for insurance documentation. Distinguish between "repair" (localized) and "replacement" (full section) in descriptions.',
-}
 
 // --- Types ---
 
@@ -238,7 +149,7 @@ async function main() {
 
     try {
       const { base64, mimeType } = await loadAndResizeImage(photoPath)
-      const analysis = await analyzePhoto(base64, mimeType, KNOWLEDGE_BASE)
+      const analysis = await analyzePhoto(base64, mimeType, DEFAULT_KNOWLEDGE_BASE)
       const score = scorePhoto(analysis.findings, photo)
 
       results.push({

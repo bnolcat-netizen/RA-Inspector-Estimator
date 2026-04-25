@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import PhotoUploader from '@/components/photos/PhotoUploader'
+import Link from 'next/link'
 import Image from 'next/image'
+import PhotoUploader, { type UploadedPhoto } from '@/components/photos/PhotoUploader'
 
 interface Job {
   id: string
@@ -19,6 +20,21 @@ interface Job {
 interface Photo {
   id: string
   signed_url: string
+  analysis_status: 'pending' | 'processing' | 'complete' | 'failed'
+}
+
+const STATUS_BADGE: Record<Photo['analysis_status'], string> = {
+  pending: 'bg-gray-400',
+  processing: 'bg-amber-400',
+  complete: 'bg-green-500',
+  failed: 'bg-red-500',
+}
+
+const STATUS_LABEL: Record<Photo['analysis_status'], string> = {
+  pending: 'Pending',
+  processing: 'Analyzing…',
+  complete: 'Ready',
+  failed: 'Failed',
 }
 
 export default function JobDetailPage() {
@@ -32,19 +48,31 @@ export default function JobDetailPage() {
       .then((r) => r.json())
       .then(({ job, photos }) => {
         setJob(job)
-        setPhotos(photos ?? [])
+        setPhotos(
+          (photos ?? []).map((p: { id: string; signed_url: string }) => ({
+            ...p,
+            analysis_status: 'complete' as const,
+          }))
+        )
       })
       .finally(() => setLoading(false))
   }, [id])
 
-  function handleUploaded(photo: Photo) {
+  function handleUploaded(photo: UploadedPhoto) {
     setPhotos((prev) => [...prev, photo])
+  }
+
+  function handleAnalysisComplete(photoId: string, status: 'complete' | 'failed') {
+    setPhotos((prev) =>
+      prev.map((p) => (p.id === photoId ? { ...p, analysis_status: status } : p))
+    )
   }
 
   if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
   if (!job) return <div className="py-16 text-center text-gray-400 text-sm">Job not found.</div>
 
   const addressLine = [job.address, job.city, job.state, job.zip].filter(Boolean).join(', ')
+  const readyPhotos = photos.filter((p) => p.analysis_status === 'complete').length
 
   return (
     <div className="max-w-lg">
@@ -54,22 +82,40 @@ export default function JobDetailPage() {
         {job.notes && <p className="text-sm text-gray-600 mt-2">{job.notes}</p>}
       </div>
 
-      <PhotoUploader jobId={id} onUploaded={handleUploaded} />
+      <PhotoUploader
+        jobId={id}
+        onUploaded={handleUploaded}
+        onAnalysisComplete={handleAnalysisComplete}
+      />
 
       {photos.length > 0 && (
-        <div className="mt-6 grid grid-cols-3 gap-2">
-          {photos.map((photo) => (
-            <div key={photo.id} className="aspect-square relative rounded-lg overflow-hidden bg-gray-100">
-              <Image
-                src={photo.signed_url}
-                alt="Roof photo"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 33vw, 200px"
-              />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="mt-6 grid grid-cols-3 gap-2">
+            {photos.map((photo) => (
+              <div key={photo.id} className="aspect-square relative rounded-lg overflow-hidden bg-gray-100">
+                <Image
+                  src={photo.signed_url}
+                  alt="Roof photo"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 33vw, 200px"
+                />
+                <span className={`absolute top-1 right-1 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[photo.analysis_status]}`}>
+                  {STATUS_LABEL[photo.analysis_status]}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {readyPhotos > 0 && (
+            <Link
+              href={`/jobs/${id}/review`}
+              className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 active:bg-violet-800"
+            >
+              Review Findings ({readyPhotos} photo{readyPhotos !== 1 ? 's' : ''} ready)
+            </Link>
+          )}
+        </>
       )}
 
       {!photos.length && (
