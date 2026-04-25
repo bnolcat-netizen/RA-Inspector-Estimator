@@ -1,6 +1,6 @@
 # RoofEstimate AI -- Progress Tracker
 
-*Updated: 2026-04-24 (Phase 5 complete, service catalog editor live). Used to orient Claude Code at session start.*
+*Updated: 2026-04-25 (Phase 6 in progress — mobile UX, annotation draw mode, PDF polish done). Used to orient Claude Code at session start.*
 
 > **Spec:** See `docs/mvp-scope-and-build-plan.md` for full build plan.
 
@@ -86,17 +86,19 @@ Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 - Also fixed: "Build Estimate" button now hidden until all findings are confirmed/rejected
 - Manually tested: seed on first visit, add, edit, issue type normalization, toggle active, delete, end-to-end catalog → estimate mapping
 
-### Phase 6 — Polish + Handoff (next)
-- PDF template visual polish (fonts, spacing, layout)
-- Mobile UX cleanup (used on a roof — fast and simple)
-- Error handling and loading states
-- Onboard contractor, gather feedback
+### Phase 6 — Polish + Handoff (in progress)
+- **Manual finding annotation**: draw mode on review page — contractor taps + drags to mark a bounding box, fills in a form, saved as confirmed finding. `POST /api/findings` endpoint added.
+- **Mobile UX**: all form inputs upgraded to `text-base` (16px) to prevent iOS auto-zoom; Edit/Remove line item buttons replaced with tappable pill buttons; Save/Cancel/Add buttons increased to py-3; settings Active/Off/Edit card buttons enlarged; `confirm()` delete dialog replaced with inline Confirm/No buttons
+- **Error handling**: load error + Retry on estimate page; `.catch()` on job detail fetch
+- **PDF visual polish**: full-bleed branded cover header; consistent interior page headers with accent bar; per-severity color badges on findings; estimate table with primary-color header row and alternating row shading; authorization page with option checkboxes and client info block
+- Remaining: onboard contractor, gather feedback
 
 ---
 
 ## Known Issues / Deferred Items
-- `middleware.ts` deprecation warning in Next.js 16 — needs rename to `proxy.ts` (non-breaking, fix in polish phase)
-- Client-side blur detection (`lib/utils/image.ts`) — deferred to Phase 6 polish
+- `middleware.ts` deprecation warning in Next.js 16 — needs rename to `proxy.ts` (non-breaking)
+- Client-side blur detection (`lib/utils/image.ts`) — deferred post-handoff
+- Box repositioning in edit mode (drag corners to resize/move) — deferred post-handoff
 - Image resize decision: client-side Canvas API used for upload; `sharp` used server-side for PDF annotation
 
 ---
