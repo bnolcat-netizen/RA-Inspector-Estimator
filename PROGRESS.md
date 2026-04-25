@@ -1,6 +1,6 @@
 # RoofEstimate AI -- Progress Tracker
 
-*Updated: 2026-04-24 (Phase 2 code complete). Used to orient Claude Code at session start.*
+*Updated: 2026-04-24 (Phase 4 complete, end-to-end flow working). Used to orient Claude Code at session start.*
 
 > **Spec:** See `docs/mvp-scope-and-build-plan.md` for full build plan.
 
@@ -68,11 +68,27 @@
 Run eval: `npm run eval`
 Thresholds: Recall ≥ 85%, Precision ≥ 80%, Hallucination ≤ 10%
 
-### Phase 4 — Estimate + PDF Generation
-- Map confirmed findings to service catalog line items
-- Estimate review screen: line items, quantities, notes
-- PDF generation: annotated photos + line items + contractor branding
-- Download and share PDF
+### Phase 4 — Estimate + PDF Generation (complete)
+- Service catalog lazy-seeded from DEFAULT_KNOWLEDGE_BASE on first estimate creation
+- `/api/estimates` (GET/POST): creates draft estimate, auto-maps confirmed findings to catalog line items
+- `/api/estimates/[id]` (GET/PATCH): estimate detail + title/intro/discount/totals updates
+- `/api/line-items` (POST) + `/api/line-items/[id]` (PATCH/DELETE): full line item CRUD
+- `/jobs/[id]/estimate`: line item assembly UI — qty/price editing, live totals, discount, amber "Qty needed" warnings
+- `/api/pdf/[id]`: sharp composites bounding boxes onto photos server-side; react-pdf renders 4-page PDF (cover, annotated findings, line items, signing page)
+- "Build Estimate" button on job detail; "Generate PDF" disabled until all quantities filled
+- `serverExternalPackages` added to next.config.ts for @react-pdf/renderer and sharp
+- PDF layout works end-to-end; visual polish deferred to Phase 6
+
+### Phase 5 — Knowledge Base UI (next)
+- Admin screen for contractor to manage service catalog (add/edit/remove services, pricing)
+- Replaces hardcoded DEFAULT_KNOWLEDGE_BASE with contractor's actual catalog
+- Required before contractor can self-serve without developer involvement
+
+### Phase 6 — Polish + Handoff
+- PDF template visual polish (fonts, spacing, layout)
+- Mobile UX cleanup (used on a roof — fast and simple)
+- Error handling and loading states
+- Onboard contractor, gather feedback
 
 ---
 
