@@ -3,12 +3,28 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentUser } from '@/lib/supabase/server'
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
     const user = await getCurrentUser()
     const supabase = await createClient()
     const service = createServiceClient()
+
+    const { data: photoRecords } = await supabase
+      .from('photos')
+      .select('id, storage_path, analysis_status')
+      .eq('job_id', id)
+      .eq('account_id', user.account_id)
+      .order('created_at', { ascending: true })
+
+    // Lightweight poll path — skip signed URL generation and job fetch
+    if (request.nextUrl.searchParams.get('status_only') === 'true') {
+      const photos = (photoRecords ?? []).map((p) => ({
+        id: p.id,
+        analysis_status: p.analysis_status,
+      }))
+      return NextResponse.json({ photos })
+    }
 
     const { data: job } = await supabase
       .from('jobs')
@@ -18,13 +34,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       .single()
 
     if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-    const { data: photoRecords } = await supabase
-      .from('photos')
-      .select('id, storage_path, analysis_status')
-      .eq('job_id', id)
-      .eq('account_id', user.account_id)
-      .order('created_at', { ascending: true })
 
     const photos = await Promise.all(
       (photoRecords ?? []).map(async (p) => {

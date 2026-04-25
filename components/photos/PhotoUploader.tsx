@@ -25,10 +25,13 @@ export default function PhotoUploader({ jobId, onUploaded, onAnalysisComplete }:
     if (!files?.length) return
     setError(null)
 
-    try {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) continue
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (!imageFiles.length) return
 
+    try {
+      // Upload all files before starting any analysis so a page refresh doesn't lose queued photos
+      const uploadedIds: string[] = []
+      for (const file of imageFiles) {
         setStatus('uploading')
         const compressed = await resizeImage(file)
         const form = new FormData()
@@ -40,15 +43,17 @@ export default function PhotoUploader({ jobId, onUploaded, onAnalysisComplete }:
 
         const { id, signed_url } = await uploadRes.json()
         onUploaded({ id, signed_url, analysis_status: 'processing' })
+        uploadedIds.push(id)
+      }
 
+      for (const photoId of uploadedIds) {
         setStatus('analyzing')
         const analyzeRes = await fetch('/api/ai/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photo_id: id }),
+          body: JSON.stringify({ photo_id: photoId }),
         })
-
-        onAnalysisComplete(id, analyzeRes.ok ? 'complete' : 'failed')
+        onAnalysisComplete(photoId, analyzeRes.ok ? 'complete' : 'failed')
       }
     } catch {
       setError('Upload failed — please try again.')

@@ -100,6 +100,41 @@ export default function JobDetailPage() {
       })
   }, [id, findingsTick])
 
+  // Poll for status updates while any photo is pending/processing (e.g. after a page refresh mid-analysis)
+  useEffect(() => {
+    const hasPending = photos.some(
+      (p) => p.analysis_status === 'pending' || p.analysis_status === 'processing'
+    )
+    if (!hasPending) return
+
+    const timer = setInterval(async () => {
+      const res = await fetch(`/api/jobs/${id}?status_only=true`)
+      if (!res.ok) return
+      const data = await res.json()
+      const freshPhotos: Array<{ id: string; analysis_status: Photo['analysis_status'] }> = data.photos ?? []
+
+      const hasNewComplete = freshPhotos.some(
+        (fp) =>
+          fp.analysis_status === 'complete' &&
+          photos.find((p) => p.id === fp.id)?.analysis_status !== 'complete'
+      )
+
+      setPhotos((prev) => {
+        const next = prev.map((p) => {
+          const fresh = freshPhotos.find((fp) => fp.id === p.id)
+          return fresh && fresh.analysis_status !== p.analysis_status
+            ? { ...p, analysis_status: fresh.analysis_status }
+            : p
+        })
+        return next.every((p, i) => p === prev[i]) ? prev : next
+      })
+
+      if (hasNewComplete) setFindingsTick((t) => t + 1)
+    }, 3000)
+
+    return () => clearInterval(timer)
+  }, [photos, id])
+
   function handleUploaded(photo: UploadedPhoto) {
     setPhotos((prev) => [...prev, photo])
   }
