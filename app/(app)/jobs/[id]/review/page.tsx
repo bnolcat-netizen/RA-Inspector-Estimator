@@ -18,6 +18,10 @@ interface Finding {
   suggested_service: string
   status: 'ai_suggested' | 'confirmed' | 'rejected' | 'edited'
   notes?: string
+  box_x?: number | null
+  box_y?: number | null
+  box_width?: number | null
+  box_height?: number | null
 }
 
 const SEVERITY_BADGE: Record<Finding['severity'], string> = {
@@ -25,6 +29,17 @@ const SEVERITY_BADGE: Record<Finding['severity'], string> = {
   medium: 'bg-amber-100 text-amber-700',
   high: 'bg-orange-100 text-orange-700',
   critical: 'bg-red-100 text-red-700',
+}
+
+const SEVERITY_COLOR: Record<Finding['severity'], string> = {
+  low: '#6b7280',
+  medium: '#d97706',
+  high: '#ea580c',
+  critical: '#dc2626',
+}
+
+function hasBox(f: Finding): f is Finding & { box_x: number; box_y: number; box_width: number; box_height: number } {
+  return f.box_x != null && f.box_y != null && f.box_width != null && f.box_height != null
 }
 
 export default function ReviewPage() {
@@ -37,6 +52,7 @@ export default function ReviewPage() {
   const [loadingFindings, setLoadingFindings] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<Finding>>({})
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/jobs/${jobId}`)
@@ -53,6 +69,7 @@ export default function ReviewPage() {
     if (!selectedPhotoId) return
     setLoadingFindings(true)
     setEditingId(null)
+    setSelectedFindingId(null)
     fetch(`/api/findings?photo_id=${selectedPhotoId}`)
       .then((r) => r.json())
       .then(({ findings }) => setFindings(findings ?? []))
@@ -85,9 +102,15 @@ export default function ReviewPage() {
     setEditingId(null)
   }
 
+  function selectFinding(findingId: string) {
+    setSelectedFindingId(findingId)
+    document.getElementById(`finding-${findingId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
   const selectedPhoto = photos.find((p) => p.id === selectedPhotoId)
   const confirmedCount = findings.filter((f) => f.status === 'confirmed' || f.status === 'edited').length
   const pendingCount = findings.filter((f) => f.status === 'ai_suggested').length
+  const visibleBoxFindings = findings.filter((f) => f.status !== 'rejected' && hasBox(f))
 
   if (loadingPhotos) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
   if (!photos.length) return (
@@ -118,10 +141,69 @@ export default function ReviewPage() {
         ))}
       </div>
 
-      {/* Selected photo */}
+      {/* Annotated photo */}
       {selectedPhoto && (
-        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100 mb-4">
-          <Image src={selectedPhoto.signed_url} alt="Selected photo" fill className="object-contain" sizes="(max-width: 768px) 100vw, 512px" />
+        <div className="relative w-full rounded-xl overflow-hidden bg-gray-100 mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={selectedPhoto.signed_url}
+            alt="Selected photo"
+            className="w-full h-auto block"
+          />
+
+          {/* Bounding box overlay */}
+          <svg
+            className="absolute inset-0 w-full h-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {visibleBoxFindings.map((finding) => {
+              if (!hasBox(finding)) return null
+              const color = SEVERITY_COLOR[finding.severity]
+              const isSelected = finding.id === selectedFindingId
+              return (
+                <rect
+                  key={finding.id}
+                  x={finding.box_x}
+                  y={finding.box_y}
+                  width={finding.box_width}
+                  height={finding.box_height}
+                  fill={color}
+                  fillOpacity={isSelected ? 0.25 : 0.1}
+                  stroke={color}
+                  strokeWidth={isSelected ? 0.8 : 0.5}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => selectFinding(finding.id)}
+                />
+              )
+            })}
+          </svg>
+
+          {/* Numbered badges */}
+          {visibleBoxFindings.map((finding, i) => {
+            if (!hasBox(finding)) return null
+            const color = SEVERITY_COLOR[finding.severity]
+            const isSelected = finding.id === selectedFindingId
+            return (
+              <button
+                key={finding.id}
+                onClick={() => selectFinding(finding.id)}
+                className="absolute flex items-center justify-center w-5 h-5 rounded-full text-white text-xs font-bold leading-none shadow-sm"
+                style={{
+                  left: `${finding.box_x}%`,
+                  top: `${finding.box_y}%`,
+                  backgroundColor: color,
+                  transform: 'translate(-25%, -25%)',
+                  outline: isSelected ? '2px solid white' : 'none',
+                  outlineOffset: '1px',
+                }}
+                aria-label={`Finding ${i + 1}: ${finding.issue_type}`}
+              >
+                {i + 1}
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -138,14 +220,17 @@ export default function ReviewPage() {
           </div>
 
           <div className="space-y-3">
-            {findings.map((finding) => {
+            {findings.map((finding, i) => {
               const isEditing = editingId === finding.id
               const isDone = finding.status === 'confirmed' || finding.status === 'edited' || finding.status === 'rejected'
+              const isSelected = selectedFindingId === finding.id
+              const badgeIndex = visibleBoxFindings.findIndex((f) => f.id === finding.id)
 
               return (
                 <div
                   key={finding.id}
-                  className={`rounded-xl border p-4 ${finding.status === 'rejected' ? 'opacity-40' : ''} ${isDone && finding.status !== 'rejected' ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}`}
+                  id={`finding-${finding.id}`}
+                  className={`rounded-xl border p-4 transition-shadow ${finding.status === 'rejected' ? 'opacity-40' : ''} ${isDone && finding.status !== 'rejected' ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'} ${isSelected ? 'ring-2 ring-violet-400' : ''}`}
                 >
                   {isEditing ? (
                     <div className="space-y-3">
@@ -195,8 +280,19 @@ export default function ReviewPage() {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                      <div
+                        className="flex items-start justify-between gap-2 mb-2 cursor-pointer"
+                        onClick={() => hasBox(finding) && selectFinding(finding.id)}
+                      >
                         <div className="flex items-center gap-2 flex-wrap">
+                          {badgeIndex >= 0 && (
+                            <span
+                              className="flex items-center justify-center w-5 h-5 rounded-full text-white text-xs font-bold shrink-0"
+                              style={{ backgroundColor: SEVERITY_COLOR[finding.severity] }}
+                            >
+                              {badgeIndex + 1}
+                            </span>
+                          )}
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_BADGE[finding.severity]}`}>
                             {finding.severity}
                           </span>
