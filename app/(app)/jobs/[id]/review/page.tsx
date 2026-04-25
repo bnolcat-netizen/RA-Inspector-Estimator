@@ -67,6 +67,7 @@ const EMPTY_ADD_DRAFT = {
 export default function ReviewPage() {
   const { id: jobId } = useParams<{ id: string }>()
   const svgRef = useRef<SVGSVGElement>(null)
+  const imageRef = useRef<HTMLDivElement>(null)
 
   const [photos, setPhotos] = useState<Photo[]>([])
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
@@ -257,7 +258,7 @@ export default function ReviewPage() {
 
       {/* Annotated photo */}
       {selectedPhoto && (
-        <div className="relative w-full rounded-xl overflow-hidden bg-gray-100 mb-4">
+        <div ref={imageRef} className="relative w-full rounded-xl overflow-hidden bg-gray-100 mb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={selectedPhoto.signed_url}
@@ -520,12 +521,18 @@ export default function ReviewPage() {
                       >
                         <div className="flex items-center gap-2 flex-wrap">
                           {badgeIndex >= 0 && (
-                            <span
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                selectFinding(finding.id)
+                                imageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                              }}
                               className="flex items-center justify-center w-5 h-5 rounded-full text-white text-xs font-bold shrink-0"
                               style={{ backgroundColor: SEVERITY_COLOR[finding.severity] }}
+                              aria-label={`Scroll to finding ${badgeIndex + 1} on photo`}
                             >
                               {badgeIndex + 1}
-                            </span>
+                            </button>
                           )}
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_BADGE[finding.severity]}`}>
                             {finding.severity}
